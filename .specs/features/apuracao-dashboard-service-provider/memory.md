@@ -40,6 +40,14 @@
 - T6 adicionou as restrições de contrato que faltavam nos requests (`NUAPURACAO`
   positivo, campos mutáveis obrigatórios e direção `ASC`/`DESC`) e um fallback
   seguro para mensagens técnicas antes da serialização do envelope.
+- T7 separou a gravação numa unidade `@Transactional(REQUIRED)` da orquestração
+  e da releitura do estado, garantindo que a resposta seja construída a partir
+  de uma consulta posterior ao retorno/commit do executor. O Controller não
+  abre uma transação externa para `atualizar`, evitando que a releitura ocorra
+  antes do commit.
+- Exceções de negócio originadas na autorização ou no executor de escrita devem
+  ser associadas ao correlation ID da chamada, substituindo um ID aleatório
+  gerado pela exceção quando ela chega sem contexto da requisição.
 
 ## Pending
 
@@ -64,8 +72,11 @@
 - T6: concluída — 12 testes unitários cobrem validações, requests herdados,
   correlation ID, códigos de erro e bloqueio de SQL/sessão/stack trace no
   envelope. Dependências de teste foram adicionadas apenas ao `model`.
-- T7/T8: DTOs, erros e casos de uso puros implementados; adapters reais seguem
-  bloqueados por contrato do Om.
+- T7: caso de uso, autorização/versão observada, fronteira transacional,
+  releitura pós-commit e 12 testes unitários concluídos; a gravação real segue
+  fail-closed até homologar versão/concorrência e o formato exato de `DTVENC`.
+- T8: DTOs, erros e caso de uso existem; adapter real segue bloqueado pelo
+  contrato do Om.
 - T4: mapeamento nativo de `BH_FACAPU` concluído para os campos comprovados.
 - T5: consulta por `NUAPURACAO` concluída; listagem/paginação/contadores ainda
   bloqueados pelo contrato de filtros.

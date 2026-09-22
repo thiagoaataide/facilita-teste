@@ -15,6 +15,7 @@ import br.com.facilita.apuracao.domain.AtualizarApuracaoCommand;
 import br.com.facilita.apuracao.error.ApuracaoBusinessException;
 import br.com.facilita.apuracao.error.CorrelationIds;
 import br.com.facilita.apuracao.port.ApuracaoStore;
+import br.com.facilita.apuracao.port.ApuracaoUpdateExecutor;
 import br.com.facilita.apuracao.port.AuthorizationAction;
 import br.com.facilita.apuracao.port.AuthorizationContext;
 import br.com.facilita.apuracao.port.AuthorizationPort;
@@ -25,17 +26,23 @@ import br.com.sankhya.studio.stereotypes.Component;
 public final class AtualizarApuracaoBusiness {
 
     private final ApuracaoStore store;
+    private final ApuracaoUpdateExecutor updateExecutor;
     private final AuthorizationPort authorization;
 
     @Inject
-    protected AtualizarApuracaoBusiness(ApuracaoStore store, AuthorizationPort authorization) {
+    protected AtualizarApuracaoBusiness(ApuracaoStore store,
+            ApuracaoUpdateExecutor updateExecutor, AuthorizationPort authorization) {
         if (store == null) {
             throw new IllegalArgumentException("O armazenamento da apuração é obrigatório.");
+        }
+        if (updateExecutor == null) {
+            throw new IllegalArgumentException("O executor transacional é obrigatório.");
         }
         if (authorization == null) {
             throw new IllegalArgumentException("A autorização da apuração é obrigatória.");
         }
         this.store = store;
+        this.updateExecutor = updateExecutor;
         this.authorization = authorization;
     }
 
@@ -57,12 +64,12 @@ public final class AtualizarApuracaoBusiness {
         AtualizarApuracaoCommand command = new AtualizarApuracaoCommand(
                 request.getNuApuracao(), request.getValor(), normalizeDate(request.getDtVenc()),
                 request.getVersion().trim(), request.getIdempotencyKey().trim());
-        ApuracaoSnapshot updated = store.updateEditableFields(command);
-        if (updated == null) {
-            throw failure(ErrorCode.INTEGRATION,
-                    "A atualização da apuração não retornou um estado válido.", null,
-                    safeCorrelationId);
+        try {
+            updateExecutor.update(command);
+        } catch (ApuracaoBusinessException exception) {
+            throw withCorrelation(exception, safeCorrelationId);
         }
+        ApuracaoSnapshot updated = findAfterCommit(request.getNuApuracao(), safeCorrelationId);
         return ApiResponse.success(safeCorrelationId, ApuracaoResponseMapper.toResponse(updated));
     }
 
@@ -76,6 +83,16 @@ public final class AtualizarApuracaoBusiness {
         if (found == null || !found.isPresent() || found.get() == null) {
             throw failure(ErrorCode.VALIDATION, "A apuração informada não foi encontrada.",
                     "nuApuracao", correlationId);
+        }
+        return found.get();
+    }
+
+    private ApuracaoSnapshot findAfterCommit(Integer nuApuracao, String correlationId) {
+        Optional<ApuracaoSnapshot> found = store.findById(nuApuracao);
+        if (found == null || !found.isPresent() || found.get() == null) {
+            throw failure(ErrorCode.INTEGRATION,
+                    "A atualização foi confirmada, mas não foi possível reler a apuração.",
+                    null, correlationId);
         }
         return found.get();
     }
@@ -159,7 +176,7 @@ public final class AtualizarApuracaoBusiness {
 
     private static ApuracaoBusinessException withCorrelation(ApuracaoBusinessException exception,
             String correlationId) {
-        if (exception.getCorrelationId() != null) {
+        if (correlationId.equals(exception.getCorrelationId())) {
             return exception;
         }
         return failure(exception.getCode(), exception.getMessage(), exception.getField(),

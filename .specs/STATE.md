@@ -49,16 +49,17 @@
 ## Handoff
 
 - **Feature**: `.specs/features/apuracao-dashboard-service-provider/`
-- **Phase / Task**: Tasks / T6 — DTOs, validações e envelope concluídos
+- **Phase / Task**: Tasks / T7 — atualização transacional e releitura pós-commit concluídas no caso de uso
 - **Completed**: configuração segura, appKey oficial confirmado no Portal,
   fachada `ApuracaoDashboardSP`, artefato `.exts` gerado e contrato seguro de
-  requests/erros validado com 12 testes unitários
+  requests/erros validado; T7 adicionou 12 testes de caso de uso (24 testes no
+  gate do módulo)
 - **In-progress**: `.specs/features/apuracao-dashboard-service-provider/tasks.md`
-  — contrato externo, filtros e adapters do dashboard/Om
-- **Next step**: confirmar o nome externo do Service Provider e alinhar o
-  dashboard; depois retomar a homologação de filtros, concorrência, anexos e
-  workflow no Om para desbloquear T5/T7-T12
+  — T7 concluída no caso de uso; mutações persistentes seguem fail-closed
+- **Next step**: implementar T8 e continuar a homologação do contrato externo,
+  filtros, versão/concorrência, anexos e workflow no Om
 - **Blockers**: `TSIANX` e `TWFITAR` retornaram `Não autorizado`; contrato de
-  listagem e campo de concorrência de `BH_FACAPU` ainda não comprovados
+  listagem, campo de concorrência/gravação condicional de `BH_FACAPU` e formato
+  exato de `DTVENC` ainda não comprovados
 - **Uncommitted files**: none
 - **Branch**: `main`

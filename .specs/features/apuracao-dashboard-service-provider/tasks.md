@@ -9,9 +9,9 @@ autorização explícita.
 
 **Design:** `design.md`  
 **Status:** In Progress — fachada pública e provider HTTP implementados em
-modo fail-closed; o `appKey` oficial do Add-on foi confirmado no Portal, e
-paginação, mutações, anexos, workflow e contrato externo aguardam homologação
-no Om.
+modo fail-closed; T7 concluiu a orquestração de atualização e sua fronteira
+transacional, mas a gravação real, paginação, anexos, workflow e contrato
+externo aguardam homologação no Om.
 
 > Execução parcial: T1, evidência local, DTOs/envelope, infraestrutura de erro,
 > portas de integração, casos de uso sem persistência, leitura nativa por
@@ -205,6 +205,20 @@ versão observada e reconsulta após commit.
 **Done when:** todos os branches de valor/data inválidos, registro inexistente e
 conflito têm teste e retornam o código correto.
 
+- [x] validação, usuário, autorização e versão observada são verificados antes
+  de chamar a fronteira de escrita.
+- [x] a gravação ocorre numa unidade `@Transactional(REQUIRED)` independente
+  da orquestração, seguida de uma nova leitura após o retorno/commit.
+- [x] testes cobrem valor negativo, vencimento vazio/maior que 10 caracteres,
+  ausência dos campos mutáveis, registro inexistente, autorização negada,
+  conflito de versão e conflito levantado durante a gravação.
+- [x] conflito/erros de negócio da gravação preservam o correlation ID da
+  requisição.
+
+**Evidência:** `AtualizarApuracaoBusinessTest` — 12 testes; `:model:test` passou
+com 24 testes no total. A persistência real continua fail-closed porque o campo
+de concorrência e a gravação condicional ainda não foram homologados no Om.
+
 ### T8 — Implementar confirmação idempotente
 
 **What:** criar caso de uso transacional de `confirmar`, exigindo valor,
@@ -322,7 +336,7 @@ separadas porque têm contratos e falhas distintas.
 | T4 | T3 | T3 → T4 | parcial — mapeamento nativo de `BH_FACAPU` |
 | T5 | T4 | T4 → T5 | parcial — leitura por chave; filtros/paginação pendentes |
 | T6 | T3, T4 | T3/T4 → T6 | concluída — DTOs, validações, envelope seguro e 12 testes unitários |
-| T7 | T5, T6 | T6 → T7 | bloqueada — store/concorrência pendentes |
+| T7 | T5, T6 | T6 → T7 | concluída no caso de uso — adapter de escrita/concorrência pendente de homologação |
 | T8 | T5, T6 | T6 → T8 | bloqueada — store/concorrência pendentes |
 | T9 | T2, T5, T6 | T2/T5/T6 → T9 | bloqueada — regra `BH_NOVAAUDIT` não comprovada |
 | T10 | T2, T5, T6 | T2/T5/T6 → T10 | bloqueada — serviço de anexos não autorizado |

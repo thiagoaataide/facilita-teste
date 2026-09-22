@@ -78,7 +78,6 @@ public class ApuracaoDashboardController {
     }
 
     /** Atualiza somente os campos editáveis após validação de versão. */
-    @Transactional(Transactional.TxType.REQUIRED)
     public ApiResponse<ApuracaoResponse> atualizar(
             @Valid AtualizarApuracaoRequest request) {
         return atualizar.execute(request, currentContext(), null);
