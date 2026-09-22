@@ -12,6 +12,13 @@ public interface ApuracaoStore {
 
     Optional<ApuracaoSnapshot> findById(Integer nuApuracao);
     ApuracaoSnapshot updateEditableFields(AtualizarApuracaoCommand command);
+
+    /**
+     * Confirma atomicamente sob a versão observada. O adapter deve reconhecer
+     * primeiro o replay da mesma chave idempotente e não repetir efeitos;
+     * para uma chave nova, valida valor e estado e compara a versão observada
+     * dentro da mesma transação, sem mutar em caso de VALIDATION/CONFLICT.
+     */
     ApuracaoSnapshot confirm(ConfirmarApuracaoCommand command);
 
     /** O adapter deve executar o reset somente para este comando explícito. */

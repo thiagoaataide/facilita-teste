@@ -9,8 +9,8 @@ autorização explícita.
 
 **Design:** `design.md`  
 **Status:** In Progress — fachada pública e provider HTTP implementados em
-modo fail-closed; T7 concluiu a orquestração de atualização e sua fronteira
-transacional, mas a gravação real, paginação, anexos, workflow e contrato
+modo fail-closed; T7 e T8 concluíram os casos de uso e suas fronteiras
+transacionais, mas a gravação real, paginação, anexos, workflow e contrato
 externo aguardam homologação no Om.
 
 > Execução parcial: T1, evidência local, DTOs/envelope, infraestrutura de erro,
@@ -232,6 +232,21 @@ permissão e estado elegível.
 **Done when:** confirmação repetida não duplica efeitos; sem valor e conflito
 retornam erro sem alteração.
 
+- [x] exige autorização no caso de uso; para novas chaves, valida valor e
+  elegibilidade atomicamente na fronteira transacional, antes de qualquer efeito.
+- [x] a chave idempotente é encaminhada sem prevalidar a versão observada fora
+  da transação; o adapter deve reconhecer replay antes de validar versão e
+  estado, e para chave nova rejeitar conflito sem mutar.
+- [x] a confirmação roda em unidade `@Transactional(REQUIRED)` separada da
+  orquestração e a resposta é construída por releitura após o commit.
+- [x] testes cobrem replay sem efeito duplicado, falta de valor, conflito de
+  versão, chave nova em apuração já confirmada, auditoria finalizada, registro
+  ausente e autorização negada.
+
+**Evidência:** `ConfirmarApuracaoBusinessTest` — 8 testes; `:model:test` passou
+com 32 testes no total. O store real segue fail-closed até a operação atômica
+de idempotência/concorrência ser homologada no Om.
+
 ### T9 — Implementar nova auditoria
 
 **What:** criar o caso de uso transacional de `solicitarNovaAuditoria`, usando
@@ -337,7 +352,7 @@ separadas porque têm contratos e falhas distintas.
 | T5 | T4 | T4 → T5 | parcial — leitura por chave; filtros/paginação pendentes |
 | T6 | T3, T4 | T3/T4 → T6 | concluída — DTOs, validações, envelope seguro e 12 testes unitários |
 | T7 | T5, T6 | T6 → T7 | concluída no caso de uso — adapter de escrita/concorrência pendente de homologação |
-| T8 | T5, T6 | T6 → T8 | bloqueada — store/concorrência pendentes |
+| T8 | T5, T6 | T6 → T8 | concluída no caso de uso/contrato — adapter de idempotência/concorrência pendente de homologação |
 | T9 | T2, T5, T6 | T2/T5/T6 → T9 | bloqueada — regra `BH_NOVAAUDIT` não comprovada |
 | T10 | T2, T5, T6 | T2/T5/T6 → T10 | bloqueada — serviço de anexos não autorizado |
 | T11 | T2, T5, T6 | T2/T5/T6 → T11 | bloqueada — workflow não autorizado |

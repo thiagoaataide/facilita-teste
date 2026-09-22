@@ -13,6 +13,7 @@ import br.com.facilita.apuracao.domain.ApuracaoSnapshot;
 import br.com.facilita.apuracao.domain.ConfirmarApuracaoCommand;
 import br.com.facilita.apuracao.error.ApuracaoBusinessException;
 import br.com.facilita.apuracao.error.CorrelationIds;
+import br.com.facilita.apuracao.port.ApuracaoConfirmExecutor;
 import br.com.facilita.apuracao.port.ApuracaoStore;
 import br.com.facilita.apuracao.port.AuthorizationAction;
 import br.com.facilita.apuracao.port.AuthorizationContext;
@@ -24,14 +25,17 @@ import br.com.sankhya.studio.stereotypes.Component;
 public final class ConfirmarApuracaoBusiness {
 
     private final ApuracaoStore store;
+    private final ApuracaoConfirmExecutor confirmExecutor;
     private final AuthorizationPort authorization;
 
     @Inject
-    protected ConfirmarApuracaoBusiness(ApuracaoStore store, AuthorizationPort authorization) {
-        if (store == null || authorization == null) {
+    protected ConfirmarApuracaoBusiness(ApuracaoStore store,
+            ApuracaoConfirmExecutor confirmExecutor, AuthorizationPort authorization) {
+        if (store == null || confirmExecutor == null || authorization == null) {
             throw new IllegalArgumentException("As portas de apuração são obrigatórias.");
         }
         this.store = store;
+        this.confirmExecutor = confirmExecutor;
         this.authorization = authorization;
     }
 
@@ -55,28 +59,13 @@ public final class ConfirmarApuracaoBusiness {
 
         ApuracaoSnapshot current = findRequired(request.getNuApuracao(), safeCorrelationId);
         requireAuthorization(context, current, safeCorrelationId);
-        if (!current.hasValidValue()) {
-            throw failure(ErrorCode.VALIDATION,
-                    "Para confirmar uma apuração, o valor deve ser preenchido.",
-                    "valor", safeCorrelationId);
+        try {
+            confirmExecutor.confirm(new ConfirmarApuracaoCommand(request.getNuApuracao(),
+                    request.getVersion().trim(), request.getIdempotencyKey().trim()));
+        } catch (ApuracaoBusinessException exception) {
+            throw withCorrelation(exception, safeCorrelationId);
         }
-        if (current.isAuditFinalized()) {
-            throw failure(ErrorCode.CONFLICT,
-                    "A apuração já possui auditoria finalizada.", null, safeCorrelationId);
-        }
-        if (!sameVersion(request.getVersion(), current.getVersion())) {
-            throw failure(ErrorCode.CONFLICT,
-                    "A apuração foi alterada por outro usuário. Recarregue os dados.",
-                    "version", safeCorrelationId);
-        }
-
-        ApuracaoSnapshot confirmed = store.confirm(new ConfirmarApuracaoCommand(
-                request.getNuApuracao(), request.getVersion().trim(),
-                request.getIdempotencyKey().trim()));
-        if (confirmed == null) {
-            throw failure(ErrorCode.INTEGRATION,
-                    "A confirmação não retornou um estado válido.", null, safeCorrelationId);
-        }
+        ApuracaoSnapshot confirmed = findAfterCommit(request.getNuApuracao(), safeCorrelationId);
         return ApiResponse.success(safeCorrelationId, ApuracaoResponseMapper.toResponse(confirmed));
     }
 
@@ -89,12 +78,22 @@ public final class ConfirmarApuracaoBusiness {
         return found.get();
     }
 
+    private ApuracaoSnapshot findAfterCommit(Integer id, String correlationId) {
+        Optional<ApuracaoSnapshot> found = store.findById(id);
+        if (found == null || !found.isPresent() || found.get() == null) {
+            throw failure(ErrorCode.INTEGRATION,
+                    "A confirmação foi concluída, mas não foi possível reler a apuração.",
+                    null, correlationId);
+        }
+        return found.get();
+    }
+
     private void requireAuthorization(AuthorizationContext context, ApuracaoSnapshot snapshot,
             String correlationId) {
         try {
             authorization.requireAllowed(AuthorizationAction.CONFIRM, context, snapshot);
         } catch (ApuracaoBusinessException exception) {
-            if (exception.getCorrelationId() != null) {
+            if (correlationId.equals(exception.getCorrelationId())) {
                 throw exception;
             }
             throw failure(exception.getCode(), exception.getMessage(), exception.getField(),
@@ -109,8 +108,13 @@ public final class ConfirmarApuracaoBusiness {
         }
     }
 
-    private static boolean sameVersion(String expected, String current) {
-        return !isBlank(expected) && !isBlank(current) && expected.trim().equals(current.trim());
+    private static ApuracaoBusinessException withCorrelation(ApuracaoBusinessException exception,
+            String correlationId) {
+        if (correlationId.equals(exception.getCorrelationId())) {
+            return exception;
+        }
+        return failure(exception.getCode(), exception.getMessage(), exception.getField(),
+                correlationId);
     }
 
     private static boolean isBlank(String value) {

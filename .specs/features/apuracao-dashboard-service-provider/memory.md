@@ -48,6 +48,11 @@
 - Exceções de negócio originadas na autorização ou no executor de escrita devem
   ser associadas ao correlation ID da chamada, substituindo um ID aleatório
   gerado pela exceção quando ela chega sem contexto da requisição.
+- T8 mantém idempotência no limite transacional: o adapter deve procurar o
+  resultado pela mesma `idempotencyKey` antes de comparar `expectedVersion` e
+  aplicar efeitos. Isso permite retry da mesma requisição mesmo após a versão
+  avançar; chave nova em versão/estado conflitante deve retornar `CONFLICT` sem
+  mutação. A operação real ainda não foi homologada e segue fail-closed.
 
 ## Pending
 
@@ -55,6 +60,7 @@
   dashboard HTML5.
 - Versão mínima do Om e versão resolvida do plugin Addon Studio.
 - Campo de concorrência de `BH_FACAPU`.
+- Semântica de confirmação atômica/idempotência do store ainda não homologada.
 - Serviços oficiais de anexos e workflow, permissões e identificador da tarefa.
 - Aprovação do contrato e do roteiro de homologação antes do primeiro build
   funcional/deploy.
@@ -75,8 +81,9 @@
 - T7: caso de uso, autorização/versão observada, fronteira transacional,
   releitura pós-commit e 12 testes unitários concluídos; a gravação real segue
   fail-closed até homologar versão/concorrência e o formato exato de `DTVENC`.
-- T8: DTOs, erros e caso de uso existem; adapter real segue bloqueado pelo
-  contrato do Om.
+- T8: caso de uso, autorização/eligibilidade, contrato idempotente e fronteira
+  transacional com releitura pós-commit concluídos; 8 testes unitários. O store
+  real segue fail-closed até homologar idempotência/concorrência no Om.
 - T4: mapeamento nativo de `BH_FACAPU` concluído para os campos comprovados.
 - T5: consulta por `NUAPURACAO` concluída; listagem/paginação/contadores ainda
   bloqueados pelo contrato de filtros.

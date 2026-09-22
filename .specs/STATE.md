@@ -49,17 +49,18 @@
 ## Handoff
 
 - **Feature**: `.specs/features/apuracao-dashboard-service-provider/`
-- **Phase / Task**: Tasks / T7 — atualização transacional e releitura pós-commit concluídas no caso de uso
+- **Phase / Task**: Tasks / T8 — confirmação idempotente e releitura pós-commit concluídas no caso de uso
 - **Completed**: configuração segura, appKey oficial confirmado no Portal,
   fachada `ApuracaoDashboardSP`, artefato `.exts` gerado e contrato seguro de
-  requests/erros validado; T7 adicionou 12 testes de caso de uso (24 testes no
-  gate do módulo)
+  requests/erros validado; T7 e T8 adicionaram 20 testes de caso de uso (32
+  testes no gate do módulo)
 - **In-progress**: `.specs/features/apuracao-dashboard-service-provider/tasks.md`
-  — T7 concluída no caso de uso; mutações persistentes seguem fail-closed
-- **Next step**: implementar T8 e continuar a homologação do contrato externo,
-  filtros, versão/concorrência, anexos e workflow no Om
+  — T7/T8 concluídas no caso de uso; mutações persistentes seguem fail-closed
+- **Next step**: homologar a regra `BH_NOVAAUDIT` para desbloquear T9 e seguir
+  com o contrato externo, filtros, versão/concorrência, anexos e workflow
 - **Blockers**: `TSIANX` e `TWFITAR` retornaram `Não autorizado`; contrato de
-  listagem, campo de concorrência/gravação condicional de `BH_FACAPU` e formato
-  exato de `DTVENC` ainda não comprovados
+  listagem, regra `BH_NOVAAUDIT`, campo de concorrência/gravação condicional de
+  `BH_FACAPU`, idempotência atômica e formato exato de `DTVENC` ainda não
+  comprovados
 - **Uncommitted files**: none
 - **Branch**: `main`

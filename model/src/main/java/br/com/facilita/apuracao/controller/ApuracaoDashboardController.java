@@ -84,7 +84,6 @@ public class ApuracaoDashboardController {
     }
 
     /** Confirma uma apuração de forma idempotente. */
-    @Transactional(Transactional.TxType.REQUIRED)
     public ApiResponse<ApuracaoResponse> confirmar(
             @Valid ConfirmarApuracaoRequest request) {
         return confirmar.execute(request, currentContext(), null);
