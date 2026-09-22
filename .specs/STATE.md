@@ -53,11 +53,11 @@
 - **Completed**: configuração segura, appKey oficial confirmado no Portal,
   fachada `ApuracaoDashboardSP` e artefato `.exts` gerado
 - **In-progress**: `.specs/features/apuracao-dashboard-service-provider/tasks.md`
-  — atualizar evidências do parceiro, package-base e contrato externo
-- **Next step**: confirmar parceiro/package-base e nome externo do Service
-  Provider; depois retomar a homologação de filtros, concorrência, anexos e
+  — alinhar contrato externo e adapter do dashboard
+- **Next step**: confirmar o nome externo do Service Provider e alinhar o
+  dashboard; depois retomar a homologação de filtros, concorrência, anexos e
   workflow no Om
 - **Blockers**: `TSIANX` e `TWFITAR` retornaram `Não autorizado`; contrato de
   listagem e campo de concorrência de `BH_FACAPU` ainda não comprovados
-- **Uncommitted files**: `tasks.md`, `memory.md`, `STATE.md`
+- **Uncommitted files**: none
 - **Branch**: `main`

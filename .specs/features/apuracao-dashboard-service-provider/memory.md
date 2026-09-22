@@ -40,8 +40,8 @@
 
 ## Pending
 
-- Confirmação final de `parceiroNome`, `group`, `rootProject.name`, package-base
-  e nome externo do Service Provider.
+- Confirmação externa do nome do Service Provider e alinhamento do prefixo no
+  dashboard HTML5.
 - Versão mínima do Om e versão resolvida do plugin Addon Studio.
 - Campo de concorrência de `BH_FACAPU`.
 - Serviços oficiais de anexos e workflow, permissões e identificador da tarefa.
@@ -52,10 +52,10 @@
 
 ## Execution status
 
-- T1: configuração segura e quarentena concluídas; appKey oficial confirmado
-  no Portal, aguardando somente a confirmação final do parceiro.
-- T3: appKey do Add-on confirmado e distinto da extensão legada; contrato
-  externo, identidade restante e apontamento do dashboard continuam pendentes.
+- T1: concluída — configuração segura, quarentena e identidade do Add-on
+  definidas; appKey oficial confirmado no Portal.
+- T3: identidade local concluída; contrato externo e apontamento do dashboard
+  continuam pendentes.
 - T2: metadata de `BH_FACAPU` capturada em `evidencias/om-teste-metadata.md`;
   permissões, concorrência, anexos e workflow continuam pendentes.
 - T6/T7/T8: DTOs, erros e casos de uso puros implementados; faltam testes e

@@ -89,7 +89,7 @@ do appKey e plugin >= 2.0.18 sem alterar o `build.gradle` mantido pelo usuário.
 - [x] O `appKey` oficial da solução **Apuração de Faturas** foi confirmado no
   Portal do desenvolvedor como pertencente a este Add-on e coincide com o
   `addon.appKey` usado no build; ele não é a identidade da extensão legada.
-- [ ] `parceiroNome` final foi confirmado no Portal/Om.
+- [x] `parceiroNome` está definido no `build.gradle` para esta solução.
 - [x] a resolução usada na validação foi `2.18.0`; a declaração do projeto foi
   preservada conforme orientação do mantenedor e continua sem alteração.
 - [x] `:model:compileJava` e `:model:test` passaram; a inspeção dos artefatos
@@ -129,8 +129,8 @@ no Portal/Om e alinhar o contrato HTML5.
 
 - [x] appKey deste Add-on está aprovado e não coincide com a extensão
   legada, conforme evidência do Portal.
-- [ ] `group`, `rootProject.name`, package-base e parceiro foram confirmados
-  como a identidade definitiva do componente.
+- [x] `group`, `rootProject.name`, package-base e parceiro estão definidos no
+  `build.gradle`, `settings.gradle` e código do Add-on.
 - [ ] o nome externo `<appKey>@ApuracaoDashboardSP` foi confirmado.
 - [ ] o adaptador HTML5 aponta para a identidade aprovada.
 
@@ -309,9 +309,9 @@ separadas porque têm contratos e falhas distintas.
 
 | Task | Depends on | Diagrama | Status |
 | --- | --- | --- | --- |
-| T1 | none | início | parcial — parceiro pendente; appKey confirmado |
+| T1 | none | início | concluída — identidade e configuração do Add-on definidas |
 | T2 | T1 | T1 → T2 | parcial — permissões externas pendentes |
-| T3 | T2 | T2 → T3 | parcial — appKey confirmado; contrato externo e identidade restante pendentes |
+| T3 | T2 | T2 → T3 | parcial — identidade local concluída; contrato externo e dashboard pendentes |
 | T4 | T3 | T3 → T4 | parcial — mapeamento nativo de `BH_FACAPU` |
 | T5 | T4 | T4 → T5 | parcial — leitura por chave; filtros/paginação pendentes |
 | T6 | T3, T4 | T3/T4 → T6 | parcial — DTOs/envelope; testes pendentes |
