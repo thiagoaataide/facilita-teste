@@ -1,0 +1,23 @@
+
+
+dependencies {
+
+    compileOnly 'org.projectlombok:lombok:1.18.24'
+    annotationProcessor 'org.projectlombok:lombok:1.18.24'
+
+}
+
+// O SDK Sankhya deste add-on tem como alvo Java 8, independentemente do JDK
+// usado para executar o Gradle.
+plugins.withId('java') {
+    sourceCompatibility = JavaVersion.VERSION_1_8
+    targetCompatibility = JavaVersion.VERSION_1_8
+
+    tasks.withType(JavaCompile).configureEach {
+        options.release = 8
+    }
+}
+
+test {
+    useJUnitPlatform()
+}
