@@ -49,14 +49,15 @@
 ## Handoff
 
 - **Feature**: `.specs/features/apuracao-dashboard-service-provider/`
-- **Phase / Task**: Tasks / T1-T3 — identidade do Add-on esclarecida
+- **Phase / Task**: Tasks / T6 — DTOs, validações e envelope concluídos
 - **Completed**: configuração segura, appKey oficial confirmado no Portal,
-  fachada `ApuracaoDashboardSP` e artefato `.exts` gerado
+  fachada `ApuracaoDashboardSP`, artefato `.exts` gerado e contrato seguro de
+  requests/erros validado com 12 testes unitários
 - **In-progress**: `.specs/features/apuracao-dashboard-service-provider/tasks.md`
-  — alinhar contrato externo e adapter do dashboard
+  — contrato externo, filtros e adapters do dashboard/Om
 - **Next step**: confirmar o nome externo do Service Provider e alinhar o
   dashboard; depois retomar a homologação de filtros, concorrência, anexos e
-  workflow no Om
+  workflow no Om para desbloquear T5/T7-T12
 - **Blockers**: `TSIANX` e `TWFITAR` retornaram `Não autorizado`; contrato de
   listagem e campo de concorrência de `BH_FACAPU` ainda não comprovados
 - **Uncommitted files**: none

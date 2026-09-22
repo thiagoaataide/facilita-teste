@@ -1,10 +1,12 @@
 package br.com.facilita.apuracao.api;
 
+import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 
 public class ApuracaoIdRequest {
 
     @NotNull(message = "A apuração é obrigatória.")
+    @Min(value = 1, message = "A apuração deve ser maior que zero.")
     private Integer nuApuracao;
 
     public ApuracaoIdRequest() {

@@ -1,6 +1,7 @@
 package br.com.facilita.apuracao.api;
 
 import java.math.BigDecimal;
+import javax.validation.constraints.AssertTrue;
 import javax.validation.constraints.DecimalMin;
 import javax.validation.constraints.Size;
 
@@ -30,5 +31,10 @@ public class AtualizarApuracaoRequest extends VersionedApuracaoRequest {
 
     public void setValor(BigDecimal valor) {
         this.valor = valor;
+    }
+
+    @AssertTrue(message = "Informe ao menos o valor ou o vencimento para atualizar.")
+    public boolean isAnyFieldProvided() {
+        return valor != null || (dtVenc != null && !dtVenc.trim().isEmpty());
     }
 }

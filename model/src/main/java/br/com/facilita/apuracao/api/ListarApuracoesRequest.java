@@ -2,6 +2,7 @@ package br.com.facilita.apuracao.api;
 
 import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
+import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
 
 public class ListarApuracoesRequest {
@@ -29,6 +30,7 @@ public class ListarApuracoesRequest {
     private String ordenacao;
 
     @Size(max = 4, message = "A direção deve ter no máximo 4 caracteres.")
+    @Pattern(regexp = "(?i)(ASC|DESC)", message = "A direção deve ser ASC ou DESC.")
     private String direcao;
 
     public ListarApuracoesRequest() {

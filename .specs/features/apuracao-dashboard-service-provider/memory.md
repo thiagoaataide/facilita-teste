@@ -37,6 +37,9 @@
 - A captura do Portal confirmou que o `appKey` usado no `build.gradle` pertence
   a este Add-on; a pendência de identidade deixou de ser o appKey e passou a
   ser apenas a confirmação de parceiro, package-base e contrato externo.
+- T6 adicionou as restrições de contrato que faltavam nos requests (`NUAPURACAO`
+  positivo, campos mutáveis obrigatórios e direção `ASC`/`DESC`) e um fallback
+  seguro para mensagens técnicas antes da serialização do envelope.
 
 ## Pending
 
@@ -58,8 +61,11 @@
   continuam pendentes.
 - T2: metadata de `BH_FACAPU` capturada em `evidencias/om-teste-metadata.md`;
   permissões, concorrência, anexos e workflow continuam pendentes.
-- T6/T7/T8: DTOs, erros e casos de uso puros implementados; faltam testes e
-  adapter real.
+- T6: concluída — 12 testes unitários cobrem validações, requests herdados,
+  correlation ID, códigos de erro e bloqueio de SQL/sessão/stack trace no
+  envelope. Dependências de teste foram adicionadas apenas ao `model`.
+- T7/T8: DTOs, erros e casos de uso puros implementados; adapters reais seguem
+  bloqueados por contrato do Om.
 - T4: mapeamento nativo de `BH_FACAPU` concluído para os campos comprovados.
 - T5: consulta por `NUAPURACAO` concluída; listagem/paginação/contadores ainda
   bloqueados pelo contrato de filtros.
@@ -68,6 +74,6 @@
 - T12: fachada `ApuracaoDashboardSP` criada com provider HTTP gerado
   automaticamente; as operações ainda não homologadas usam adapters
   fail-closed e não gravam no ambiente.
-- Validação local: `:model:compileJava` passou com JDK 21 (target Java 8),
-  `:model:test` passou sem fontes de teste e a inspeção do artefato não encontrou
-  DDL/metadata de criação para `BH_FACAPU`, `TSIANX` ou `TWFITAR`.
+- Validação local: `:model:test` passou com 12 testes usando JDK 21 (target Java
+  8); a inspeção do artefato não encontrou DDL/metadata de criação para
+  `BH_FACAPU`, `TSIANX` ou `TWFITAR`.

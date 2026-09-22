@@ -20,7 +20,7 @@ public class ApuracaoControllerAdvice {
     @ExceptionHandler({ApuracaoBusinessException.class})
     public ApiResponse<Void> handleBusiness(ApuracaoBusinessException exception) {
         String correlationId = CorrelationIds.normalize(exception.getCorrelationId());
-        ApiError error = new ApiError(exception.getCode(), exception.getMessage(),
+        ApiError error = new ApiError(exception.getCode(), PublicErrorMessages.forBusiness(exception),
                 exception.getField());
         return ApiResponse.failure(correlationId, error);
     }

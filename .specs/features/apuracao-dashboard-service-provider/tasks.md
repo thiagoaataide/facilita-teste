@@ -181,9 +181,16 @@ mapper sem expor entidades JAPE.
 **Gate:** Quick  
 **Done when:**
 
-- [ ] todos os requests rejeitam campos e formatos inválidos.
-- [ ] o envelope nunca serializa sessão, SQL ou stack trace.
-- [ ] testes cobrem validação e serialização dos códigos de erro.
+- [x] todos os requests rejeitam campos e formatos inválidos; constraints cobrem
+  identificador positivo, version/idempotency, anexos, paginação, direção e
+  campos mutáveis.
+- [x] o envelope nunca serializa sessão, SQL ou stack trace; mensagens de
+  negócio técnicas são substituídas por fallback seguro.
+- [x] testes unitários cobrem validação, herança dos requests, correlation ID,
+  serialização dos cinco códigos de erro e sanitização do envelope.
+
+**Evidência:** `ApiContractValidationTest` — 12 testes aprovados por
+`./gradlew :model:test` com JDK 21 (target Java 8).
 
 ### T7 — Implementar atualização de valor/vencimento
 
@@ -314,7 +321,7 @@ separadas porque têm contratos e falhas distintas.
 | T3 | T2 | T2 → T3 | parcial — identidade local concluída; contrato externo e dashboard pendentes |
 | T4 | T3 | T3 → T4 | parcial — mapeamento nativo de `BH_FACAPU` |
 | T5 | T4 | T4 → T5 | parcial — leitura por chave; filtros/paginação pendentes |
-| T6 | T3, T4 | T3/T4 → T6 | parcial — DTOs/envelope; testes pendentes |
+| T6 | T3, T4 | T3/T4 → T6 | concluída — DTOs, validações, envelope seguro e 12 testes unitários |
 | T7 | T5, T6 | T6 → T7 | bloqueada — store/concorrência pendentes |
 | T8 | T5, T6 | T6 → T8 | bloqueada — store/concorrência pendentes |
 | T9 | T2, T5, T6 | T2/T5/T6 → T9 | bloqueada — regra `BH_NOVAAUDIT` não comprovada |
