@@ -9,8 +9,9 @@ autorização explícita.
 
 **Design:** `design.md`  
 **Status:** In Progress — fachada pública e provider HTTP implementados em
-modo fail-closed; paginação, mutações, anexos e workflow aguardam
-contratos/permissões homologados no Om.
+modo fail-closed; o `appKey` oficial do Add-on foi confirmado no Portal, e
+paginação, mutações, anexos, workflow e contrato externo aguardam homologação
+no Om.
 
 > Execução parcial: T1, evidência local, DTOs/envelope, infraestrutura de erro,
 > portas de integração, casos de uso sem persistência, leitura nativa por
@@ -85,7 +86,10 @@ do appKey e plugin >= 2.0.18 sem alterar o `build.gradle` mantido pelo usuário.
 **Done when:**
 
 - [x] `autoDDL=false` está explícito.
-- [ ] appKey final e parceiro foram confirmados no Portal/Om (ainda pendente).
+- [x] O `appKey` oficial da solução **Apuração de Faturas** foi confirmado no
+  Portal do desenvolvedor como pertencente a este Add-on e coincide com o
+  `addon.appKey` usado no build; ele não é a identidade da extensão legada.
+- [ ] `parceiroNome` final foi confirmado no Portal/Om.
 - [x] a resolução usada na validação foi `2.18.0`; a declaração do projeto foi
   preservada conforme orientação do mantenedor e continua sem alteração.
 - [x] `:model:compileJava` e `:model:test` passaram; a inspeção dos artefatos
@@ -123,7 +127,10 @@ no Portal/Om e alinhar o contrato HTML5.
 **Gate:** Build  
 **Done when:**
 
-- [ ] appKey novo está aprovado e não coincide com template/legado.
+- [x] appKey deste Add-on está aprovado e não coincide com a extensão
+  legada, conforme evidência do Portal.
+- [ ] `group`, `rootProject.name`, package-base e parceiro foram confirmados
+  como a identidade definitiva do componente.
 - [ ] o nome externo `<appKey>@ApuracaoDashboardSP` foi confirmado.
 - [ ] o adaptador HTML5 aponta para a identidade aprovada.
 
@@ -302,9 +309,9 @@ separadas porque têm contratos e falhas distintas.
 
 | Task | Depends on | Diagrama | Status |
 | --- | --- | --- | --- |
-| T1 | none | início | parcial — identidade pendente |
+| T1 | none | início | parcial — parceiro pendente; appKey confirmado |
 | T2 | T1 | T1 → T2 | parcial — permissões externas pendentes |
-| T3 | T2 | T2 → T3 | bloqueada — appKey/contrato externo pendentes |
+| T3 | T2 | T2 → T3 | parcial — appKey confirmado; contrato externo e identidade restante pendentes |
 | T4 | T3 | T3 → T4 | parcial — mapeamento nativo de `BH_FACAPU` |
 | T5 | T4 | T4 → T5 | parcial — leitura por chave; filtros/paginação pendentes |
 | T6 | T3, T4 | T3/T4 → T6 | parcial — DTOs/envelope; testes pendentes |
