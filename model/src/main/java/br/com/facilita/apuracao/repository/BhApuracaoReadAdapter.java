@@ -39,44 +39,10 @@ public final class BhApuracaoReadAdapter implements ApuracaoQuery {
             if (found == null || !found.isPresent()) {
                 return Optional.empty();
             }
-            return Optional.of(toSnapshot(found.get()));
+            return Optional.of(BhApuracaoSnapshotMapper.toSnapshot(found.get()));
         } catch (Exception exception) {
             throw new ApuracaoBusinessException(ErrorCode.INTEGRATION,
                     "Não foi possível consultar a apuração no Om.");
         }
-    }
-
-    private static ApuracaoSnapshot toSnapshot(BhApuracao entity) {
-        return ApuracaoSnapshot.builder()
-                .nuApuracao(entity.getNuApuracao())
-                .codConta(toString(entity.getCodConta()))
-                .numContrato(toString(entity.getNumContrato()))
-                .nuNota(toString(entity.getNuNota()))
-                .sequenciaCon(toString(entity.getSequenciaCon()))
-                .operadora(toString(entity.getOperadora()))
-                .cliente(toString(entity.getCliente()))
-                .codVend(toString(entity.getCodVend()))
-                .referencia(toString(entity.getReferencia()))
-                .referenciaAdiada(toString(entity.getReferenciaAdiada()))
-                .dtVenc(toString(entity.getDtVenc()))
-                .valor(entity.getValor())
-                .valorRef(entity.getValorRef())
-                .confirmado(toFlag(entity.getConfirmado()))
-                .auditoriaFinalizada(toFlag(entity.getAuditoriaFinalizada()))
-                .emailEnviado(toFlag(entity.getEmailEnviado()))
-                .faturamentoLiberado(toFlag(entity.getFaturamentoLiberado()))
-                .nuFila(toString(entity.getNuFila()))
-                .plano(toString(entity.getPlano()))
-                .idInstPrn(toString(entity.getIdInstPrn()))
-                .possuiAnexo(toFlag(entity.getPossuiAnexo()))
-                .build();
-    }
-
-    private static String toString(Object value) {
-        return value == null ? null : String.valueOf(value);
-    }
-
-    private static String toFlag(Boolean value) {
-        return value == null ? null : (value.booleanValue() ? "S" : "N");
     }
 }

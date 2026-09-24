@@ -8,10 +8,17 @@ registrar a evidência em `memory.md`. Nenhum `deployAddon` é permitido sem
 autorização explícita.
 
 **Design:** `design.md`  
-**Status:** In Progress — fachada pública e provider HTTP implementados em
-modo fail-closed; T7 e T8 concluíram os casos de uso e suas fronteiras
-transacionais, mas a gravação real, paginação, anexos, workflow e contrato
-externo aguardam homologação no Om.
+**Status:** In Progress — baseline funcional do legado reconciliado em spec,
+design e contrato; fachada pública permanece fail-closed. T7/T8 têm casos de
+uso e fronteiras transacionais, mas os adapters de escrita não foram
+homologados. T5 só entra no caminho crítico de leitura se HTML5 T22 reprovar a
+consulta JSP; T9 ainda precisa corrigir a autorização da sessão. T10/T11 são
+complementares, e a identidade externa segue gate de publicação.
+
+**Faseamento aprovado em 2026-09-23:** recuperar primeiro uma consulta
+somente leitura segura; habilitar comandos do Provider em fatias verticais;
+deixar anexos/workflow como fase separada, a menos que o aceite funcional os
+torne pré-requisitos. A segurança da consulta JSP é um gate, não uma suposição.
 
 > Execução parcial: T1, evidência local, DTOs/envelope, infraestrutura de erro,
 > portas de integração, casos de uso sem persistência, leitura nativa por
@@ -54,21 +61,22 @@ externo aguardam homologação no Om.
 ## Execution Plan
 
 ```text
-Phase 1 — Fundação e segurança (sequencial)
-T1 → T2 → T3
+Fase 0 — Fundação e evidências
+T1 → T2 → T3 → T4 → T6
 
-Phase 2 — Contrato e modelo (sequencial)
-T3 → T4 → T5 → T6
+Fase 1 — Recuperar leitura sem aguardar mutações
+HTML5 T22; usar o caminho JSP somente se parâmetros/projeção/autorização
+forem comprovados. Se não forem, concluir a consulta segura do Provider (T5).
 
-Phase 3 — Casos de uso e integrações
-T6 ──┬→ T7 ────────────────┐
-     └→ T8 ────────────────┤
-T2,T5,T6 → T9 → T10 → T11 ─┤
-                            ↓
-                           T12
+Fase 2 — Primeira mutação vertical
+T5 (leitura por chave) + T6 + T7 → T15 → T12 (ação atualizar) → HTML5 T12
 
-Phase 4 — Homologação e publicação (sequencial)
-T12 → T13 → T14
+Fase 3 — Comandos de transição e UAT do MVP
+T8 + T9 + T15 → T16 → T12/T13 → T14 → HTML5 T14/T21
+
+Fase 4 — Capacidades complementares
+T10 (anexos) e T11 (workflow), cada uma com autorização e contrato
+homologados; integrar e executar UAT complementar depois do MVP.
 ```
 
 ## Task Breakdown
@@ -133,6 +141,8 @@ no Portal/Om e alinhar o contrato HTML5.
   `build.gradle`, `settings.gradle` e código do Add-on.
 - [ ] o nome externo `<appKey>@ApuracaoDashboardSP` foi confirmado.
 - [ ] o adaptador HTML5 aponta para a identidade aprovada.
+- [ ] o gadget atual ainda usa `facilitatelecom@ApuracaoDashboardSP`; alinhar
+  com o appKey próprio do Add-on antes de homologar a integração ponta a ponta.
 
 ### T4 — Criar entidades JAPE nativas sem geração de DDL
 
@@ -168,6 +178,12 @@ tarefa, com limite/paginação do contrato.
 - [ ] filtros, ordenação, contadores e paginação foram comparados com amostras
   do Om; a implementação continua bloqueada até o contrato de listagem.
 - [x] ausência de dado por `NUAPURACAO` retorna `Optional.empty()`.
+- [x] o baseline de filtros foi registrado: mês corrente/pendentes como estado
+  inicial legado, busca por número/conta/valor/referência/vencimento e
+  existência de anexo pela chave `NUAPURACAO || '_bhApuracao'` em `TSIANX`.
+- [ ] implementar esses filtros somente após comprovar autorização de leitura,
+  projeção e paginação; a referência não autoriza consulta direta não aprovada
+  nem torna `POSSUIANEXO` equivalente à existência em `TSIANX`.
 
 ### T6 — Definir DTOs, validações e envelope de erro
 
@@ -249,16 +265,34 @@ de idempotência/concorrência ser homologada no Om.
 
 ### T9 — Implementar nova auditoria
 
+**Status:** Parcial — o caso de uso delega ao executor transacional e relê após o
+commit; a checagem `allowsNewAudit()` no snapshot foi removida e a permissão
+fica em `AuthorizationPort`. A gravação em `BhApuracaoJapeStore.requestNewAudit`
+permanece fail-closed até T16.
+
 **What:** criar o caso de uso transacional de `solicitarNovaAuditoria`, usando
 somente campos e permissão comprovados.
+
+`motivo` permanece fora do contrato externo: não aparece no fluxo legado nem
+no payload atual do gadget; o campo DTO existente não autoriza lógica nova.
 
 **Where:** `.../apuracao/business/SolicitarNovaAuditoriaBusiness.java`  
 **Depends on:** T2, T5, T6  
 **Requirement:** SP-06  
 **Tests:** integration/manual  
 **Gate:** Full
-**Done when:** a regra `BH_NOVAAUDIT`, campos reiniciados, autorização e
-transação têm evidência no Om; sem evidência, o comando permanece bloqueado.
+**Done when:** a política resolve `BH_NOVAAUDIT` do usuário corrente; o reset
+limita-se a `IDINSTPRN`, `CONFIRMADO`, `AUDITORIAFINALIZADA`, `EMAILENVIADO` e
+`FATURAMENTOLIBERADO`; permissão, versão e gravação condicional são
+homologadas no Om. Até lá, o comando permanece bloqueado.
+
+- [x] comportamento de referência e lista exata de campos reiniciados foram
+  registrados em spec/design/evidência local.
+- [x] remover a leitura de `allowsNewAudit()` do snapshot e exigir a regra na
+  autorização do usuário corrente.
+- [ ] confirmar o fluxo no Om após adapter T16 e política de autorização.
+- [ ] homologar reset atômico e confirmar que valor, vencimento e indicador de
+  anexo são preservados.
 
 ### T10 — Implementar gateway de anexos
 
@@ -273,8 +307,32 @@ oficial homologado, limite/tipo/MIME e chave de idempotência.
 **Done when:** upload e associação estão comprovados, não há mutação direta não
 homologada de `TSIANX` e há compensação para falha entre as etapas.
 
-> A porta e os casos de uso foram criados; o gateway concreto permanece
-> bloqueado porque `TSIANX` retornou `Não autorizado` no ambiente de teste.
+**Status:** Parcial — a porta e os casos de uso existem; tipos aceitos e escopo
+da chave de upload foram adaptados da referência local legada. O gadget atual
+envia outro formato de chave; o gateway concreto permanece fail-closed.
+
+- [x] A validação aceita somente os tipos do seletor legado (`FO`, `2V`, `FA`,
+  `BO`, `NF`, `RE`) e exige a chave de sessão vinculada à apuração.
+- [x] A incompatibilidade entre `ANEXO_SISTEMA_bhApuracao_<id>` e a chave
+  `APURACAO_DASHBOARD_<id>_<timestamp>` enviada pelo gadget foi registrada.
+- [ ] Upload, associação, listagem autorizada, limite/MIME/antivírus,
+  idempotência e compensação continuam pendentes de homologação no Om.
+- [ ] harmonizar o formato da chave nos dois lados e comprovar que o serviço
+  suporta a mesma chave usada no `sessionUpload.mge` antes de ativar o gateway.
+
+**Evidência local:** `evidencias/legacy-anexo-flow.md`. O fluxo legado é uma
+referência comportamental, não comprova que seu serviço ou suas permissões
+possam ser reutilizados pelo Add-on.
+
+**Divergência do cliente:** `evidencias/html5-contract-alignment.md` registra
+as linhas do gadget que usam outro formato de chave de upload.
+
+> Em 2026-09-23, foi capturada somente a metadata de colunas de `TSIANX` via
+> `ALL_TAB_COLUMNS`. A documentação pública descreve upload e associação
+> genéricos e `CRUDServiceProvider.loadRecords` como consulta genérica, mas
+> ainda faltam entidade/permissões e chamada sob a sessão do Add-on, além de
+> MIME/limite por arquivo, idempotência e compensação homologados.
+> `ALL_CONSTRAINTS` segue sem autorização; não foi executada mutação.
 
 ### T11 — Implementar gateway de workflow
 
@@ -292,19 +350,31 @@ respostas comprovadas; não há update direto em `TWFITAR`.
 > A porta e o caso de uso foram criados; o gateway concreto permanece bloqueado
 > porque `TWFITAR` retornou `Não autorizado` no ambiente de teste.
 
+> O legado filtra tarefa não concluída por `IDINSTPRN`, mas escolhe
+> `MIN(IDINSTTAR)`; essa regra não é adotada sem validação para o caso de várias
+> tarefas. A UI precisa dos identificadores de processo e tarefa.
+
 ### T12 — Publicar o Controller SP
 
-**What:** implementar `@Controller(serviceName = "ApuracaoDashboardSP")` com
-as ações do contrato e Advice de erro.
+**Status:** Parcial — controller existe, mas a última compilação de `:model`
+emitiu aviso de que `service-providers.xml` foi criado manualmente. A evidência
+anterior de geração automática precisa ser repetida em build limpo antes de
+considerar o provider descoberto pelo Om.
+
+**What:** publicar incrementalmente `@Controller(serviceName =
+"ApuracaoDashboardSP")` com Advice de erro; expor somente ações já
+implementadas e homologadas, começando por `atualizar`.
 
 **Where:** `.../apuracao/controller/`  
-**Depends on:** T7, T8, T9, T10, T11  
+**Depends on:** T15
 **Requirement:** SP-09, SP-12  
 **Tests:** integration/manual  
 **Gate:** Full  
-**Done when:** cada método público mapeia para uma ação documentada, usa DTO,
+**Done when:** cada método publicado mapeia para uma ação homologada, usa DTO,
 injeta dependências por construtor, responde envelope estável no Om e o provider
-aparece no `service-providers.xml` gerado.
+aparece no `service-providers.xml` gerado automaticamente em artefato atual,
+sem dependência de arquivo gerado/manual persistente. Operações bloqueadas de
+anexo/workflow não são apresentadas como funcionais no MVP.
 
 ### T13 — Adicionar testes e inspeção anti-DDL
 
@@ -319,19 +389,76 @@ de instalação/upgrade sem DDL.
 **Done when:** `:model:test` passa, o artefato não contém DDL das tabelas
 existentes e o smoke test registra resultado.
 
-### T14 — Homologar integração com o dashboard
+### T14 — Homologar comandos principais com o dashboard
 
-**What:** executar o roteiro manual com o gadget HTML5, permissões permitidas/
-negadas, concorrência, anexos e workflow; atualizar contrato e memory.
+**What:** executar o roteiro manual com o gadget HTML5 para edição, confirmação
+e nova auditoria; testar usuários permitidos/negados, concorrência e releitura.
+Anexos e workflow têm gate complementar em T10/T11 e não atrasam esta fatia,
+salvo se forem pré-requisito do aceite funcional.
 
 **Where:** Om de homologação + `.specs/features/.../evidencias/`  
-**Depends on:** T12, T13  
-**Requirement:** SP-02 a SP-12  
+**Depends on:** T12, T13, T16
+**Requirement:** SP-04 a SP-06, SP-09 a SP-12
 **Tests:** integration/manual  
 **Gate:** Full  
-**Done when:** critérios de aceite da spec estão marcados com evidência, o
-usuário aprova o comportamento e há plano de reversão; só então considerar
-publicação.
+**Done when:** edição, confirmação e nova auditoria têm evidência de
+sucesso/recusa e releitura; o usuário aprova o comportamento e há plano de
+reversão. O aceite registra que anexos/workflow não bloqueiam o MVP ou os
+promove explicitamente para o gate.
+
+- [ ] alinhar prefixo do provider, versão (`adDhalter` → `version`) e chave do
+  upload entre gadget e Add-on, além da homologação funcional normal.
+
+### T15 — Implementar adapter seguro para a primeira gravação
+
+**What:** substituir o bloqueio de persistência por um adapter homologado para
+`atualizar`, começando por `VALOR`/`DTVENC` e sem criar schema.
+
+**Where:** `model/src/main/java/<package-base>/apuracao/repository/` e
+`evidencias/`
+**Depends on:** T2, T4, T5, T6, T7
+**Requirement:** SP-04, SP-09, SP-10, SP-11
+**Tests:** unit + integration/manual
+**Gate:** Full
+**Status:** Parcial — `BhApuracaoJapeStore` grava `VALOR`/`DTVENC` via JAPE;
+token provisório `{valor}|{dtVenc}` documentado em `evidencias/t15-write-adapter.md`;
+confirmação/reauditoria seguem fail-closed.
+
+**Done when:**
+
+- [ ] o Om comprova usuário permitido/negado, autorização, estado gravável e
+  estratégia de concorrência suportada; `adDhalter` não é assumido como versão
+  sem evidência.
+- [x] a gravação altera somente os campos permitidos em transação e falha sem
+  mutação diante de conflito de versão ou apuração confirmada (código).
+- [ ] releitura posterior ao commit homologada no Om; testes de integração.
+- [x] evidência local registrada; nenhum DDL ou tabela auxiliar criado.
+- [ ] se a política de autorização permanecer fail-closed, homologação não pode
+  ser considerada concluída.
+
+### T16 — Habilitar confirmação e nova auditoria como comandos separados
+
+**What:** conectar os casos de uso T8/T9 a adapters transacionais comprovados
+e publicar suas ações no Controller somente após homologação, sem fazer o
+navegador reproduzir regras de estado ou autorização.
+
+**Where:** `model/src/main/java/<package-base>/apuracao/business/`,
+`repository/` e `security/`
+**Depends on:** T2, T5, T6, T8, T9, T15
+**Requirement:** SP-05, SP-06, SP-09, SP-10, SP-11
+**Tests:** unit + integration/manual
+**Gate:** Full
+**Done when:**
+
+- [ ] confirmação exige valor e estado elegível; replay, conflito e falha não
+  duplicam efeitos nem deixam estado parcial.
+- [ ] nova auditoria lê `BH_NOVAAUDIT` do usuário corrente e reinicia somente
+  os campos observados no legado, preservando valor, vencimento e anexo.
+- [ ] cada comando passa por autorização e uma gravação transacional; a UI
+  recebe o estado reconsultado após commit.
+- [ ] requests/responses e usuários permitidos/negados são homologados no Om.
+- [ ] se a semântica de concorrência/idempotência não puder ser sustentada sem
+  schema novo, a operação permanece fail-closed até decisão explícita.
 
 ## Validação do plano
 
@@ -347,18 +474,20 @@ separadas porque têm contratos e falhas distintas.
 | --- | --- | --- | --- |
 | T1 | none | início | concluída — identidade e configuração do Add-on definidas |
 | T2 | T1 | T1 → T2 | parcial — permissões externas pendentes |
-| T3 | T2 | T2 → T3 | parcial — identidade local concluída; contrato externo e dashboard pendentes |
+| T3 | T2 | T2 → T3 | parcial — identidade local concluída; prefixo externo do dashboard difere |
 | T4 | T3 | T3 → T4 | parcial — mapeamento nativo de `BH_FACAPU` |
-| T5 | T4 | T4 → T5 | parcial — leitura por chave; filtros/paginação pendentes |
+| T5 | T4 | T4 → T5 | parcial — leitura por chave; baseline funcional mapeado, query/paginação/autorização pendentes |
 | T6 | T3, T4 | T3/T4 → T6 | concluída — DTOs, validações, envelope seguro e 12 testes unitários |
 | T7 | T5, T6 | T6 → T7 | concluída no caso de uso — adapter de escrita/concorrência pendente de homologação |
 | T8 | T5, T6 | T6 → T8 | concluída no caso de uso/contrato — adapter de idempotência/concorrência pendente de homologação |
-| T9 | T2, T5, T6 | T2/T5/T6 → T9 | bloqueada — regra `BH_NOVAAUDIT` não comprovada |
-| T10 | T2, T5, T6 | T2/T5/T6 → T10 | bloqueada — serviço de anexos não autorizado |
-| T11 | T2, T5, T6 | T2/T5/T6 → T11 | bloqueada — workflow não autorizado |
-| T12 | T7, T8, T9, T10, T11 | T7/T8/T9/T10/T11 → T12 | bloqueada — dependências não ligadas |
+| T9 | T2, T5, T6 | T2/T5/T6 → T9 | parcial — baseline conhecido; permissão está modelada no snapshot e escrita/autorização não homologadas |
+| T10 | T2, T5, T6 | T2/T5/T6 → T10 | parcial — tipos/chave legada registrados; chave do gadget é incompatível e gateway permanece bloqueado |
+| T11 | T2, T5, T6 | T2/T5/T6 → T11 | bloqueada — regra de tarefa múltipla e leitura/autorização no Om não homologadas |
+| T12 | T15 | T15 → T12 | parcial — publicar somente comandos homologados; integrações de anexo/workflow ficam fora do MVP |
 | T13 | T7, T8, T12 | T12 → T13 | parcial — compile/test e anti-DDL validados |
-| T14 | T12, T13 | T12/T13 → T14 | bloqueada — requer endpoint e homologação |
+| T14 | T12, T13, T16 | T12/T13/T16 → T14 | bloqueada — homologação ponta a ponta dos comandos principais |
+| T15 | T2, T4, T5, T6, T7 | T7 → T15 | nova — adapter de escrita deve ser comprovado no Om |
+| T16 | T2, T5, T6, T8, T9, T15 | T15 → T16 | nova — confirmar/reauditar ficam atrás de adapters autorizados |
 
 ### Test co-location
 
@@ -367,6 +496,6 @@ separadas porque têm contratos e falhas distintas.
 | T6 | DTO/validation | unit | unit | ✅ |
 | T7 | business | unit | unit | ✅ |
 | T8 | business | unit | unit | ✅ |
-| T5/T9/T10/T11/T12/T14 | repository/integration/controller | integration/manual | integration/manual | ✅ |
+| T5/T9/T10/T11/T12/T14 | repository/integration/controller | integration/manual | integration/manual | pendente de homologação |
 | T1/T3/T4 | config/entity | none/build | none/build | ✅ |
 | T13 | tests/config | unit + build | unit + build | ✅ |

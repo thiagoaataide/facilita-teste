@@ -36,3 +36,12 @@ não encontrou `dbscripts`, `datadictionary` ou artefato de DDL.
 
 O WAR ainda contém o gadget de exemplo `TMP_ExemploHTML5` herdado do template;
 ele deve ser removido antes da publicação caso não seja desejado no ambiente.
+
+## Revalidação de compilação — 2026-09-23
+
+`:model:compileJava` concluiu novamente com sucesso usando JDK 21 e target
+Java 8, sem executar testes nem deploy. Durante `:model:generateFiles`, o plugin
+avisou que `service-providers.xml` foi criado manualmente e recomendou removê-lo
+para permitir geração automática. Portanto, o resultado acima, de 2026-09-21,
+é evidência histórica; T12 não considera descoberta automática do provider
+confirmada até uma geração atual e verificável do artefato.

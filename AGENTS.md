@@ -2,8 +2,9 @@
 
 ## Escopo e fronteiras
 
-Este repositório contém somente o novo add-on backend da Facilita para expor um
-Service Provider da Apuração de Faturas. O gadget HTML5 vive em
+Este repositório (`C:\projetos\facilita-apuracao-fatura-addon`) contém somente
+o novo add-on backend da Facilita para expor um Service Provider da Apuração de
+Faturas. O gadget HTML5 vive em
 `C:\projetos\sankhya-html5` e o checkout legado em
 `C:\projetos\facilitatelecoment` é apenas referência funcional. Nunca buildar,
 copiar ou publicar o checkout legado para resolver esta demanda.

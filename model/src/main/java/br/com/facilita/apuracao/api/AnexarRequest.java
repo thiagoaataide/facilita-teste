@@ -14,7 +14,7 @@ public class AnexarRequest extends VersionedApuracaoRequest {
     private String nameAttach;
 
     @NotBlank(message = "O tipo do anexo é obrigatório.")
-    @Size(max = 100, message = "O tipo do anexo deve ter no máximo 100 caracteres.")
+    @Size(max = 2, message = "O tipo do anexo deve ter no máximo 2 caracteres.")
     private String tipo;
 
     public AnexarRequest() {

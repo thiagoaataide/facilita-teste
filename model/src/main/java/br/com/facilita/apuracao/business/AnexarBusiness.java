@@ -1,5 +1,10 @@
 package br.com.facilita.apuracao.business;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
+
 import com.google.inject.Inject;
 
 import br.com.facilita.apuracao.api.AnexarRequest;
@@ -17,6 +22,11 @@ import br.com.sankhya.studio.stereotypes.Component;
 /** Caso de uso de associação de um arquivo pelo gateway homologado. */
 @Component
 public final class AnexarBusiness {
+
+    private static final String SESSION_KEY_PREFIX = "ANEXO_SISTEMA_bhApuracao_";
+    private static final Set<String> SUPPORTED_ATTACHMENT_TYPES = Collections
+            .unmodifiableSet(new HashSet<String>(Arrays.asList(
+                    "FO", "2V", "FA", "BO", "NF", "RE")));
 
     private final AnexoGateway gateway;
     private final AuthorizationPort authorization;
@@ -69,6 +79,16 @@ public final class AnexarBusiness {
         }
         if (isBlank(request.getTipo())) {
             throw failure(ErrorCode.VALIDATION, "O tipo do anexo é obrigatório.", "tipo",
+                    correlationId);
+        }
+        if (!SUPPORTED_ATTACHMENT_TYPES.contains(request.getTipo())) {
+            throw failure(ErrorCode.VALIDATION, "O tipo do anexo não é aceito.", "tipo",
+                    correlationId);
+        }
+        String expectedSessionKey = SESSION_KEY_PREFIX + request.getNuApuracao();
+        if (!expectedSessionKey.equals(request.getSessionKey())) {
+            throw failure(ErrorCode.VALIDATION,
+                    "A chave do upload não corresponde à apuração informada.", "sessionKey",
                     correlationId);
         }
     }

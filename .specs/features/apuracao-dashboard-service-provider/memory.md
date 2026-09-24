@@ -13,6 +13,16 @@
   desenvolvedor para a solução **Apuração de Faturas**, do tipo Add-on. Ele é a
   identidade de deploy deste projeto e não deve ser confundido com a identidade
   da extensão legada.
+- Decisão confirmada em 2026-09-23: o gadget mantém a experiência, filtros e
+  interação; toda mutação passa pelo `ApuracaoDashboardSP`, que aplica no
+  backend as regras, a autorização do usuário corrente e a transação.
+- A listagem/detalhe podem usar temporariamente JSP somente leitura se os
+  parâmetros forem vinculados ou validados, a projeção for allowlisted e a
+  autorização for comprovada. Se qualquer condição falhar, a leitura deve ir
+  para uma consulta autorizada do Provider. JavaScript não grava diretamente
+  em `BH_FACAPU`.
+- Anexos e workflow permanecem em uma fase separada; só bloqueiam o MVP se o
+  aceite funcional confirmar que são indispensáveis para concluir a aprovação.
 
 ## Lessons
 
@@ -56,6 +66,10 @@
 
 ## Pending
 
+- Próxima sequência aprovada em 2026-09-23: homologar a leitura segura do
+  gadget (HTML5 T22); provar a primeira gravação via Provider (T15); depois
+  habilitar confirmação/nova auditoria (T16). Anexos/workflow (T10/T11) ficam
+  em fase complementar, salvo decisão funcional em contrário.
 - Confirmação externa do nome do Service Provider e alinhamento do prefixo no
   dashboard HTML5.
 - Versão mínima do Om e versão resolvida do plugin Addon Studio.
@@ -64,8 +78,63 @@
 - Serviços oficiais de anexos e workflow, permissões e identificador da tarefa.
 - Aprovação do contrato e do roteiro de homologação antes do primeiro build
   funcional/deploy.
-- Acesso de leitura aos objetos `TSIANX` e `TWFITAR` no ambiente de teste;
-  ambos retornaram `status=3: Não autorizado`.
+- Em 2026-09-23, uma consulta explícita ao perfil **Facilita Telecom**/**teste**
+  obteve somente metadata de colunas de `TSIANX` via `ALL_TAB_COLUMNS`; a consulta
+  a `ALL_CONSTRAINTS` retornou `status=3: Não autorizado`. Consultas anteriores
+  de dados de `TSIANX` e `TWFITAR` também retornaram `status=3`.
+- `sankhya_status` não indicou perfil padrão nem sessão viva, embora a consulta
+  explícita de metadata tenha funcionado. A documentação pública oficial descreve
+  upload via `sessionUpload.mge` e associação via `AnexoSistemaSP.salvar`, com
+  API key e Bearer token; também documenta `CRUDServiceProvider.loadRecords`
+  como consulta genérica. A entidade/permissões e a invocação na sessão atual,
+  compensação, MIME/limite por arquivo e idempotência para `bhApuracao` não foram
+  comprovadas; T10 segue bloqueada.
+
+### T10 — Compatibilidade segura identificada no legado (2026-09-23)
+
+- A referência somente leitura é o repositório `facilitatelecoment`, commit
+  `68f758737abad0b1620cc46e0ffd8f41bd99775c`; detalhes e arquivos/linhas estão
+  em `evidencias/legacy-anexo-flow.md`.
+- A validação do novo caso de uso agora permite somente os tipos oferecidos
+  pelo seletor legado e exige a chave
+  `ANEXO_SISTEMA_bhApuracao_<NUAPURACAO>`. A API continua representando um
+  arquivo por chamada.
+- O filtro de associação legado é `PKREGISTRO='<NUAPURACAO>_bhApuracao'`, com
+  mais recente primeiro. A listagem ampla por `NOMEINSTANCIA` não foi portada.
+- Não foi copiada a gravação antecipada de `POSSUIANEXO`, a atualização de
+  `AnexoSistema`/`TSIANX`, a renomeação com CPF/CNPJ ou o acesso ao filesystem.
+  O gateway concreto segue fail-closed: serviço sob a sessão do Add-on,
+  autorização, conteúdo/MIME/limite, antivírus, idempotência e compensação
+  permanecem sem homologação.
+
+### Reconciliação do baseline legado (2026-09-23)
+
+- Spec, design e contrato agora distinguem comportamento observável no legado
+  de mecanismo/permissão que exige homologação no Om. As evidências de fonte
+  estão em `evidencias/local-reference.md`, `evidencias/legacy-anexo-flow.md` e
+  `evidencias/html5-contract-alignment.md`.
+- `BH_NOVAAUDIT` é lido do usuário atual. O T9 deixou de consultar
+  `ApuracaoSnapshot.allowsNewAudit()`; a permissão fica em `AuthorizationPort`
+  (adapter T16 ainda fail-closed). O reset legado observado limpa `IDINSTPRN`,
+  `CONFIRMADO`,
+  `AUDITORIAFINALIZADA`, `EMAILENVIADO` e `FATURAMENTOLIBERADO`, preservando
+  valor, vencimento e anexo.
+- O HTML5 novo envia `APURACAO_DASHBOARD_<NUAPURACAO>_<timestamp>` como chave de
+  sessão; T10 exige `ANEXO_SISTEMA_bhApuracao_<NUAPURACAO>`. O mismatch bloqueia
+  a requisição antes do gateway e requer alinhamento cliente/backend.
+- Há mais duas divergências do contrato atual: o gadget usa
+  `facilitatelecom@ApuracaoDashboardSP`, não o appKey registrado para este
+  Add-on; e envia `adDhalter` como `version`, enquanto `BhApuracaoReadAdapter`
+  não popula `ApuracaoSnapshot.version`.
+- `SolicitarNovaAuditoriaBusiness.java` foi regravado em UTF-8 com a correção T9.
+- T15: `BhApuracaoJapeStore` substitui `BlockedApuracaoStore` para leitura e
+  `atualizar`; token `{valor}|{dtVenc}` alinhado ao HTML5 (`observedEditionVersion`).
+- HTML5 T22: removido `AD_DHALTER` das JSPs; checklist em
+  `evidencias/t22-read-gate-addon.md`.
+- A compilação de `:model` em 2026-09-23 passou, mas `:model:generateFiles`
+  avisou que `service-providers.xml` foi criado manualmente. A evidência antiga
+  de T12 precisa ser revalidada por geração atual antes de afirmar descoberta
+  automática do provider.
 
 ## Execution status
 
@@ -85,13 +154,71 @@
   transacional com releitura pós-commit concluídos; 8 testes unitários. O store
   real segue fail-closed até homologar idempotência/concorrência no Om.
 - T4: mapeamento nativo de `BH_FACAPU` concluído para os campos comprovados.
-- T5: consulta por `NUAPURACAO` concluída; listagem/paginação/contadores ainda
-  bloqueados pelo contrato de filtros.
-- T9/T10/T11: casos de uso e portas existem, mas adapters concretos seguem
-  bloqueados até permissões, concorrência, anexos/workflow e contrato do Om.
-- T12: fachada `ApuracaoDashboardSP` criada com provider HTTP gerado
-  automaticamente; as operações ainda não homologadas usam adapters
-  fail-closed e não gravam no ambiente.
+- T5: consulta por `NUAPURACAO` concluída; baseline de filtros/search/anexo
+  documentado, mas listagem/paginação/contadores aguardam autorização e
+  homologação da projeção no Om.
+- T9: caso de uso corrigido (sem `allowsNewAudit` no snapshot); gravação
+  fail-closed até T16.
+- T15: adapter JAPE de `atualizar` implementado; homologação Om e autorização
+  real pendentes (`evidencias/t15-write-adapter.md`).
+- T10: porta e casos de uso existem; tipos aceitos e escopo da chave temporária
+  foram adaptados do legado, e somente a metadata de colunas de `TSIANX` foi
+  capturada no Om. A chave do gadget novo difere da chave legada validada; sem
+  harmonização, serviço na sessão atual, listagem autorizada e compensação, o
+  gateway segue fail-closed.
+- T11: casos de uso e porta existem, mas o adapter concreto segue bloqueado
+  até permissões e contrato do workflow no Om.
+- Em 2026-09-22, sankhya_list_profiles falhou porque o CLI do 1Password não
+  conseguiu conectar ao aplicativo desktop; nenhuma consulta ou mutação no Om
+  foi executada nesta tentativa.
+- T12: controller/fachada `ApuracaoDashboardSP` existe; a evidência de provider
+  gerado automaticamente precisa ser revalidada porque a última compilação
+  avisou que o XML era manual. As operações não homologadas seguem fail-closed.
 - Validação local: `:model:test` passou com 12 testes usando JDK 21 (target Java
   8); a inspeção do artefato não encontrou DDL/metadata de criação para
   `BH_FACAPU`, `TSIANX` ou `TWFITAR`.
+
+## Fase atual — 2026-09-24 (UAT HTML5 T22 + deploy add-on produção)
+
+### Onde estamos
+
+- **HTML5 T22 (leitura):** blocos A–G do checklist homologados na base Facilita
+  (produção); exportação CSV, layout, paginação e detalhe JSP aprovados. **H**
+  (anexo/tarefa via fachada) em andamento.
+- **Add-on:** `facilita-apuracao-fatura-addon` **1.0.1** instalado na mesma base
+  do gadget (Administração do Servidor, origem Place, 24/09/2026). `appKey` do
+  Portal = `build.gradle` = `0bace5b4-6687-4507-9093-a80a82a03bcb`.
+- **Integração SP (H.1 — Ver anexo):** o broker responde, mas retornou
+  `HttpServiceBroker: Nenhum provedor ...` quando o gadget chamou
+  `ApuracaoDashboardSP.listarAnexos` **sem** qualificar com o appKey. Tentativa
+  com path do EAR (`/facilita-apuracao-fatura-addon/service.sbr`) gerou redirect
+  de login (sessão do BI não vale nesse contexto). **Correção no HTML5:** chamada
+  via `/mge/service.sbr` e `serviceName` =
+  `{appKey}@ApuracaoDashboardSP.listarAnexos` (config em `tdb_partida.jsp` +
+  `resolveFacadeServiceName` em `script.js`). **Aguardando republicação do
+  gadget + reteste em Network.**
+
+### Próximas ações — fazer o provedor responder no anexo (ordem sugerida)
+
+1. **Republicar o componente BI** com o HTML5 atualizado; Ctrl+F5; em Network
+   confirmar `serviceName=0bace5b4-6687-4507-9093-a80a82a03bcb@ApuracaoDashboardSP.listarAnexos`.
+2. Se **ainda** “nenhum provedor”: reiniciar o servidor após instalação do
+   add-on; revisar log WildFly na hora do clique (falha de DI impede registro do
+   `@Controller`); testar outro método do mesmo SP (`getTarefa`) para isolar
+   roteamento vs. operação.
+3. Se o **SP responde** (JSON com envelope, não HTML de login): para T22/H.1,
+   aceitar **fail-closed** do `BlockedAnexoGateway` / erro de permissão como
+   “chegou na fachada”; marcar checklist H.1 e seguir H.2–H.4 na UI.
+4. **Antes de abrir PDF de anexo de verdade (T10/T13):** harmonizar chave de
+   upload HTML5 (`APURACAO_DASHBOARD_...`) vs. validação backend
+   (`ANEXO_SISTEMA_bhApuracao_<NUAPURACAO>`); homologar `AnexoSistemaSP` /
+   listagem na sessão do add-on; implementar adapter concreto substituindo
+   `BlockedAnexoGateway`.
+5. Atualizar `evidencias/html5-contract-alignment.md` e `contracts.md` quando H.1
+   fechar (prefixo `appKey@`, não `facilitatelecom@`).
+
+### Lembrete
+
+- Add-on instalado **não** substitui o prefixo na URL: o broker roteia pelo
+  **nome qualificado** do serviço. `appKey` é ID da solução no Portal, não token
+  de autorização; a sessão do Om autentica a chamada em `/mge/service.sbr`.

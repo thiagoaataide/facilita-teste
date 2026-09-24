@@ -90,7 +90,6 @@ public class ApuracaoDashboardController {
     }
 
     /** Solicita nova auditoria para uma apuração elegível. */
-    @Transactional(Transactional.TxType.REQUIRED)
     public ApiResponse<ApuracaoResponse> solicitarNovaAuditoria(
             @Valid SolicitarNovaAuditoriaRequest request) {
         return solicitarNovaAuditoria.execute(request, currentContext(), null);

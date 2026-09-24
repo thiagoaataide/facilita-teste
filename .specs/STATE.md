@@ -46,21 +46,59 @@
 - **Date**: 2026-09-22
 - **Status**: active
 
+### AD-006 — Dashboard para experiência; Provider para comandos de escrita
+- **Decision**: O dashboard HTML5 mantém apresentação, filtros e interação;
+  toda mutação passa por uma interface pequena do `ApuracaoDashboardSP`, que
+  resolve usuário, autorização, estado e transação no backend.
+- **Reason**: A falha de `GridConfig` exige substituir a experiência da tela,
+  não deslocar regras autoritativas para JavaScript. Um caminho de leitura
+  server-side pode acelerar a recuperação sem duplicar as regras de escrita.
+- **Trade-off**: Lista e detalhe podem permanecer temporariamente em JSP
+  somente leitura se os parâmetros forem vinculados ou validados, os campos
+  forem allowlisted e a autorização for comprovada; caso contrário, a leitura
+  também deve passar pelo Provider. Anexos e workflow seguem como fase
+  separada, salvo se o aceite funcional os tornar pré-requisitos.
+- **Scope**: gadget HTML5 e
+  `.specs/features/apuracao-dashboard-service-provider/`; nenhuma escrita
+  manual no navegador nem chamada direta a serviços legados para mutar
+  `BH_FACAPU`.
+- **Date**: 2026-09-23
+- **Status**: active
+
 ## Handoff
 
 - **Feature**: `.specs/features/apuracao-dashboard-service-provider/`
-- **Phase / Task**: Tasks / T8 — confirmação idempotente e releitura pós-commit concluídas no caso de uso
+- **Phase / Task**: Tasks / HTML5 T22 (UAT manual) → T15 homologação Om → T16
+- **T9 status**: parcial — `allowsNewAudit()` removido do caso de uso; permissão
+  fica só em `AuthorizationPort`; gravação de nova auditoria segue fail-closed
+  até T16
+- **T15 status**: parcial — `BhApuracaoJapeStore` habilita `atualizar` via JAPE;
+  token provisório `{valor}|{dtVenc}`; confirmação/reauditoria ainda bloqueadas
 - **Completed**: configuração segura, appKey oficial confirmado no Portal,
-  fachada `ApuracaoDashboardSP`, artefato `.exts` gerado e contrato seguro de
-  requests/erros validado; T7 e T8 adicionaram 20 testes de caso de uso (32
-  testes no gate do módulo)
-- **In-progress**: `.specs/features/apuracao-dashboard-service-provider/tasks.md`
-  — T7/T8 concluídas no caso de uso; mutações persistentes seguem fail-closed
-- **Next step**: homologar a regra `BH_NOVAAUDIT` para desbloquear T9 e seguir
-  com o contrato externo, filtros, versão/concorrência, anexos e workflow
-- **Blockers**: `TSIANX` e `TWFITAR` retornaram `Não autorizado`; contrato de
-  listagem, regra `BH_NOVAAUDIT`, campo de concorrência/gravação condicional de
-  `BH_FACAPU`, idempotência atômica e formato exato de `DTVENC` ainda não
-  comprovados
-- **Uncommitted files**: none
+  fachada `ApuracaoDashboardSP`, artefato `.exts` gerado, DTOs/envelope, T7/T8,
+  executor transacional T9 existente, metadata somente leitura e análise do
+  baseline legado; spec/design/contracts/tasks alinhados aos comportamentos
+  observados e às incompatibilidades atuais do gadget
+- **In-progress**: T22 UAT no Om; homologar T15 (autorização real + gravação);
+  T16 confirmação/reauditoria; T10/T11 complementares
+- **Next step**: solicitante executar checklist `evidencias/t22-read-gate-addon.md`;
+  homologar `atualizar` no Om com política de autorização; implementar adapters
+  T16; harmonizar prefixo do provider; revalidar `service-providers.xml` em build
+  com JDK
+- **Blockers**: `FailClosedAuthorizationPort` impede mutações até política Om;
+  a última compilação avisou que `service-providers.xml` foi criado manualmente;
+  build local falhou por JRE 8 sem JDK nesta máquina;
+  `ALL_TAB_COLUMNS` retornou somente metadata de `TSIANX`, enquanto
+  `ALL_CONSTRAINTS` e leituras anteriores de dados da tabela retornaram
+  `Não autorizado`; `TWFITAR` também segue sem autorização. A documentação
+  pública descreve upload/associação genéricos e `CRUDServiceProvider.loadRecords`,
+  mas o acesso à entidade/permissões, a chamada sob a sessão atual do Om,
+  compensação, MIME/limite por arquivo e idempotência para `bhApuracao` seguem
+  sem comprovação
+- **Uncommitted files**: alterações T9 pré-existentes em `.specs/STATE.md`,
+  `.specs/features/apuracao-dashboard-service-provider/{memory.md,tasks.md,contracts.md,evidencias/om-teste-metadata.md}` e
+  `model/src/main/java/br/com/facilita/apuracao/{business/SolicitarNovaAuditoriaBusiness.java,controller/ApuracaoDashboardController.java}`;
+  arquivos novos T9 `TransactionalApuracaoNewAuditExecutor.java` e
+  `port/ApuracaoNewAuditExecutor.java`; T10 em `AnexarBusiness.java`,
+  `AnexarRequest.java` e documentos/evidência do fluxo legado
 - **Branch**: `main`

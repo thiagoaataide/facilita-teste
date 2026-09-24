@@ -13,6 +13,7 @@ import br.com.facilita.apuracao.domain.ApuracaoSnapshot;
 import br.com.facilita.apuracao.domain.SolicitarNovaAuditoriaCommand;
 import br.com.facilita.apuracao.error.ApuracaoBusinessException;
 import br.com.facilita.apuracao.error.CorrelationIds;
+import br.com.facilita.apuracao.port.ApuracaoNewAuditExecutor;
 import br.com.facilita.apuracao.port.ApuracaoStore;
 import br.com.facilita.apuracao.port.AuthorizationAction;
 import br.com.facilita.apuracao.port.AuthorizationContext;
@@ -24,14 +25,17 @@ import br.com.sankhya.studio.stereotypes.Component;
 public final class SolicitarNovaAuditoriaBusiness {
 
     private final ApuracaoStore store;
+    private final ApuracaoNewAuditExecutor newAuditExecutor;
     private final AuthorizationPort authorization;
 
     @Inject
-    protected SolicitarNovaAuditoriaBusiness(ApuracaoStore store, AuthorizationPort authorization) {
-        if (store == null || authorization == null) {
+    protected SolicitarNovaAuditoriaBusiness(ApuracaoStore store,
+            ApuracaoNewAuditExecutor newAuditExecutor, AuthorizationPort authorization) {
+        if (store == null || newAuditExecutor == null || authorization == null) {
             throw new IllegalArgumentException("As portas de apuração são obrigatórias.");
         }
         this.store = store;
+        this.newAuditExecutor = newAuditExecutor;
         this.authorization = authorization;
     }
 
@@ -60,25 +64,20 @@ public final class SolicitarNovaAuditoriaBusiness {
                     "Somente uma apuração confirmada pode solicitar nova auditoria.",
                     "nuApuracao", safeCorrelationId);
         }
-        if (!current.allowsNewAudit()) {
-            throw failure(ErrorCode.FORBIDDEN,
-                    "Usuário não possui permissão para solicitar nova auditoria.",
-                    null, safeCorrelationId);
-        }
         if (!sameVersion(request.getVersion(), current.getVersion())) {
             throw failure(ErrorCode.CONFLICT,
                     "A apuração foi alterada por outro usuário. Recarregue os dados.",
                     "version", safeCorrelationId);
         }
 
-        ApuracaoSnapshot reopened = store.requestNewAudit(new SolicitarNovaAuditoriaCommand(
-                request.getNuApuracao(), request.getVersion().trim(),
-                request.getIdempotencyKey().trim(), request.getMotivo()));
-        if (reopened == null) {
-            throw failure(ErrorCode.INTEGRATION,
-                    "A solicitação de nova auditoria não retornou um estado válido.", null,
-                    safeCorrelationId);
+        try {
+            newAuditExecutor.requestNewAudit(new SolicitarNovaAuditoriaCommand(
+                    request.getNuApuracao(), request.getVersion().trim(),
+                    request.getIdempotencyKey().trim(), request.getMotivo()));
+        } catch (ApuracaoBusinessException exception) {
+            throw withCorrelation(exception, safeCorrelationId);
         }
+        ApuracaoSnapshot reopened = findAfterCommit(request.getNuApuracao(), safeCorrelationId);
         return ApiResponse.success(safeCorrelationId, ApuracaoResponseMapper.toResponse(reopened));
     }
 
@@ -91,16 +90,25 @@ public final class SolicitarNovaAuditoriaBusiness {
         return found.get();
     }
 
+    private ApuracaoSnapshot findAfterCommit(Integer id, String correlationId) {
+        Optional<ApuracaoSnapshot> found = store.findById(id);
+        if (found == null || !found.isPresent() || found.get() == null) {
+            throw failure(ErrorCode.INTEGRATION,
+                    "A solicitação foi concluída, mas não foi possível reler a apuração.",
+                    null, correlationId);
+        }
+        return found.get();
+    }
+
     private void requireAuthorization(AuthorizationContext context, ApuracaoSnapshot snapshot,
             String correlationId) {
         try {
             authorization.requireAllowed(AuthorizationAction.REQUEST_NEW_AUDIT, context, snapshot);
         } catch (ApuracaoBusinessException exception) {
-            if (exception.getCorrelationId() != null) {
+            if (correlationId.equals(exception.getCorrelationId())) {
                 throw exception;
             }
-            throw failure(exception.getCode(), exception.getMessage(), exception.getField(),
-                    correlationId);
+            throw withCorrelation(exception, correlationId);
         }
     }
 
@@ -117,6 +125,15 @@ public final class SolicitarNovaAuditoriaBusiness {
 
     private static boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
+    }
+
+    private static ApuracaoBusinessException withCorrelation(ApuracaoBusinessException exception,
+            String correlationId) {
+        if (correlationId.equals(exception.getCorrelationId())) {
+            return exception;
+        }
+        return failure(exception.getCode(), exception.getMessage(), exception.getField(),
+                correlationId);
     }
 
     private static ApuracaoBusinessException failure(ErrorCode code, String message, String field,
