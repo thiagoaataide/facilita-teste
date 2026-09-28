@@ -1,0 +1,230 @@
+# .cursorrules — facilita-apuracao-fatura-addon
+
+Você atua como arquiteto/engenheiro neste repositório. Produza código
+legítimo, com alta coesão, baixo acoplamento e complexidade mínima.
+Antes de alterar qualquer coisa: inspecione o código existente, o
+`build.gradle` e `.specs/STATE.md`. Não proponha o desenho de outro
+ecossistema.
+
+`AGENTS.md` continua sendo a fonte de fronteiras Sankhya (schema, SDK,
+publicação). Este arquivo define o *como* escrever e o que recusar.
+
+---
+
+## 0. O que este projeto é (e o que não é)
+
+Este repositório é **somente** o add-on backend Facilita: fachada
+`ApuracaoDashboardSP` no Sankhya Om.
+
+| Detectado | Implicação |
+|-----------|------------|
+| Java 8 (`sourceCompatibility` / `options.release = 8`) | Proibido: records, `var`, switch expression, text blocks, sealed, pattern matching |
+| Addon Studio 2.x + Guice | `com.google.inject.Inject` no construtor. Sem Spring, sem `@Autowired` |
+| JAPE (`@JapeEntity`, `JapeRepository`) | Sem JPA (`@Entity`, `EntityManager`, Hibernate de persistência) |
+| Lombok presente | Getters/setters em DTOs/entidades. Não usar `@RequiredArgsConstructor` como substituto do construtor Guice em `@Component`/`@Controller` |
+| Sem Kafka, Docker, n8n, Redis, Outbox | Não inventar mensageria, containers, cache ou low-code |
+
+Projetos vizinhos (não buildar, não copiar para “resolver” daqui):
+
+- UI: `C:\projetos\sankhya-html5\facilita\apuracao-faturas\`
+- Legado (referência de regra): `C:\projetos\facilitatelecoment`
+
+Legado usa `DynamicVO` / `JapeFactory` — traduzir para SDK atual, nunca
+reusar essas APIs.
+
+---
+
+## 1. Inspeção prévia (obrigatória)
+
+Antes de gerar código:
+
+1. Ler `.specs/STATE.md` e a feature em
+   `.specs/features/apuracao-dashboard-service-provider/`.
+2. Abrir classes irmãs na mesma camada (controller, business, port,
+   repository, integration) e copiar o padrão local — não um tutorial.
+3. Se a decisão for de SDK/Gradle/JAPE: Context7 primeiro; senão
+   `developer.sankhya.com.br`. Lacuna = `PENDENTE`, não chute de API.
+4. Se a mudança for mutação ou anexo/workflow: o fonte legado explica
+   comportamento histórico; só implementar o que estiver homologado no Om
+   ou explicitamente autorizado na spec.
+
+Não criar feature, camada, tabela ou “framework interno” para um caso.
+
+---
+
+## 2. Camadas — reusar, não proliferar
+
+Fluxo: `Controller → Business → Repository | Integration`.
+
+| Pacote | Responsabilidade | Não fazer |
+|--------|------------------|-----------|
+| `controller` | Fachada fina, `@Valid`, delegar | try/catch, SQL, regra de estado |
+| `api` | DTOs e `ErrorCode` estáveis | entidades JAPE |
+| `business` | Caso de uso + validação de fluxo | HTTP, JAPE cru, `new` de infra |
+| `domain` | Command, snapshot, mapper | `@Controller`, persistência |
+| `repository` | JAPE parametrizado + mapeamento | envelope HTTP |
+| `integration` | Adapter do Om (anexo/workflow) | regra de apuração |
+| `port` | Abstração **só** na fronteira real | interface para cada método privado |
+| `security` | Sessão Om + autorização | atalho “sempre permite” |
+| `error` | Exceção tipada + `@ControllerAdvice` | logar e engolir |
+
+Uma operação nova = método no `ApuracaoDashboardController` existente +
+um `*Business` se a orquestração for distinta. Não criar segundo SP.
+
+`serviceName` permanece `ApuracaoDashboardSP`. Nunca
+`ApuracaoDashboardControllerSP`.
+
+---
+
+## 3. Coesão primeiro — DIP sem fábrica de classes
+
+**Acoplar em interface só na borda.** Portas já existentes e suficientes
+para o desenho atual:
+
+- `ApuracaoStore` / `ApuracaoQuery` — persistência
+- `ApuracaoUpdateExecutor`, `ApuracaoConfirmExecutor`,
+  `ApuracaoNewAuditExecutor` — transação isolada da releitura
+- `AuthorizationPort` — fail-closed
+- `AnexoGateway`, `WorkflowGateway` — Om ainda não homologado
+
+Proibido:
+
+- Interface + impl para um único use case interno
+- `List<Strategy>` / Strategy / Factory / Outbox “para o futuro”
+- Cadeia `a.getB().getC()` para mutar estado de terceiro — mova a
+  regra para quem possui o dado (`ApuracaoSnapshot`, store, mapper)
+
+**DI:** dependências de negócio e infra entram pelo construtor
+(`@Inject`). Sem `new` de `@Component`/`@Repository`/gateway. `new` só
+para value objects / commands / exceções / DTOs.
+
+**Alta coesão:** o método trabalha os dados da própria classe. Se o
+business só repassa um campo para o gateway, não extraia mais um
+orquestrador.
+
+Complexidade extra (VO para todo Integer, um arquivo por constante,
+mapper MapStruct se o projeto mapeia à mão) só com ganho claro e pedido
+explícito.
+
+---
+
+## 4. Clean Code aplicável aqui (não Object Calisthenics cego)
+
+Usar:
+
+- Guard clauses e retornos antecipados para validação (`nuApuracao`,
+  versão, idempotência, sessão).
+- Métodos curtos o bastante para caber na cabeça; extrair private se o
+  aninhamento passar de ~2 níveis **e** o bloco tiver nome de domínio.
+- Reaproveitar `ErrorCode`, `ApuracaoBusinessException`,
+  `CorrelationIds`, `PublicErrorMessages`, mappers e executores
+  transacionais já existentes.
+- Comentários só para restrição de segurança, fail-closed ou decisão de
+  spec — nunca Javadoc que repete o nome do método.
+
+Não usar como lei absoluta:
+
+- “proibir `else`”
+- “máximo 1 nível de indentação”
+- “todo primitivo vira Value Object”
+
+`else` curto e um `if` de estado (`isConfirmed`) são aceitáveis. Não
+substituir por hierarquia de tipos.
+
+Java 8: streams só quando reduzem ruído (map/filter curto). Loop
+explícito se o stream ficar opaco.
+
+Mensagens de API em português. Encoding dos fontes Java/XML do add-on:
+**ISO-8859-1**. Não salvar `.java` novo em UTF-8 com acento quebrado
+(`apura??o`).
+
+---
+
+## 5. Contrato, erros e fail-closed
+
+- Controller devolve `ApiResponse<T>` / envelope; nunca `BhApuracao`.
+- Validação de entrada: Bean Validation no DTO + guards no business.
+- Exceções sobem ao `@ControllerAdvice`. Sem `catch` no controller.
+- Integração não homologada **permanece** no adapter `Blocked*` até
+  evidência no Om. Não “implementar um pouco” contra `AnexoSistemaSP`
+  ou workflow por analogia.
+- Autorização é fail-closed (`FailClosedAuthorizationPort` até política
+  real). Não abrir mutação no Om sem tarefa de spec + teste/evidência.
+- Mutação: `@Transactional` no **executor** (commit antes da releitura),
+  não uma transação monólito no controller (já é `NotSupported`).
+
+Códigos públicos: `VALIDATION`, `FORBIDDEN`, `CONFLICT`, `INTEGRATION`,
+`INTERNAL`. Não inventar código novo sem atualizar contrato da feature.
+
+---
+
+## 6. Schema e persistência
+
+`BH_FACAPU`, `TSIANX`, `TWFITAR` já existem. Este add-on **não** cria,
+altera nem gera DDL delas.
+
+- `autoDDL=false`
+- Sem Table/NativeTable de dicionário para essas tabelas
+- Sem `SELECT *` em SQL novo; colunas allowlisted
+- Consultas parametrizadas; sem concatenar filtro do gadget
+- Entidade `@JapeEntity` mapeia o que a metadata do Om comprovou
+
+---
+
+## 7. Identidade, sessão e gadget
+
+- `appKey` (`0bace5b4-6687-4507-9093-a80a82a03bcb`) é **ID da solução**
+  no Portal, não token. Não colocar em header de autorização.
+- Roteamento do broker no BI: `{appKey}@ApuracaoDashboardSP.{metodo}`
+  em `/mge/service.sbr`. Sessão do usuário autenticado no Om.
+- Não reintroduzir `facilitatelecom@ApuracaoDashboardSP` neste add-on.
+- Alteração de payload/prefixo do gadget é no repo HTML5, alinhada ao
+  contrato; este repo não publica o JSP.
+
+Deploy (`deployAddon`) só com autorização explícita do usuário.
+
+---
+
+## 8. Spec-driven e verificação
+
+Toda mudança de comportamento amarra uma tarefa em
+`.specs/features/apuracao-dashboard-service-provider/`.
+
+1. Spec/design já cobrem o caso? Se não, atualize spec **antes** do
+   código amplo.
+2. Uma tarefa atômica; atualize `tasks.md` e `memory.md`.
+3. Critério binário: teste JUnit na camada tocada **ou** evidência Om
+   registrada. Sem “código órfão”.
+4. Testes: JUnit 5 + Mockito; mock de `JapeRepository` via `@Mock`;
+   estático só `JapeSession`/`SessionFile` quando a skill de teste exigir.
+
+Não refatore arquivo adjacente. Não delete código morto preexistente
+salvo pedido. Toda linha do diff deve rastrear o pedido.
+
+---
+
+## 9. Anti-padrões explícitos
+
+```
+// RUIM — Spring / Java 21 neste add-on
+public record ListarAnexosRequest(...) {}
+@Autowired AnexoGateway gateway;
+
+// RUIM — API legada
+JapeFactory.dao("bhApuracao").findByPK(...)
+
+// RUIM — vazar entidade
+public BhApuracao listarDetalhe(...) { return entity; }
+
+// RUIM — “só para destravar anexo”
+return anexoDao.findAll(); // TSIANX sem homologação
+
+// BOM — Java 8, Guice, DTO, porta
+@Inject
+public ListarAnexosBusiness(AnexoGateway gateway, AuthorizationPort auth) { ... }
+return ApiResponse.success(id, gateway.listarAnexos(request, ctx));
+```
+
+Se 30 linhas resolvem e 8 classes “mais SOLID” só espalham o mesmo `if`,
+escreva as 30 linhas. Veredito: o revisor sênior acharia inchado?
+Reescreva menor.
