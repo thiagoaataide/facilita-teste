@@ -92,6 +92,10 @@ angular.module("ApuracaoTrabalhoApp", ["snk"])
                         && typeof response.responseBody.body.ok === "boolean") {
                     return response.responseBody.body;
                 }
+                if (response.responseBody && response.responseBody.error
+                        && typeof response.responseBody.error.ok === "boolean") {
+                    return response.responseBody.error;
+                }
                 if (typeof response.ok === "boolean") {
                     return response;
                 }

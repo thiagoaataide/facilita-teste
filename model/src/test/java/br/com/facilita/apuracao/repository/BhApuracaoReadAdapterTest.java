@@ -11,6 +11,7 @@ import java.lang.reflect.Proxy;
 import java.math.BigDecimal;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import org.junit.jupiter.api.Test;
 
@@ -75,7 +76,40 @@ class BhApuracaoReadAdapterTest {
         assertFalse(sql.contains("nao-e-mes"));
     }
 
+    @Test
+    void detalheDevolveALinhaDoNuApuracaoPedido() {
+        BhApuracaoReadAdapter adapter = adapter(Collections.<GradeApuracaoRow>emptyList(),
+                Collections.singletonList(detalheConhecido()));
+
+        Optional<ApuracaoSnapshot> found = adapter.findById(Integer.valueOf(185044207),
+                new AuthorizationContext("10"));
+
+        assertTrue(found.isPresent());
+        ApuracaoSnapshot item = found.get();
+        assertEquals(Integer.valueOf(185044207), item.getNuApuracao());
+        assertEquals("10", item.getCodConta());
+        assertEquals("2026-09-15", item.getDtVenc());
+        assertEquals(new BigDecimal("12.50"), item.getValor());
+        assertEquals("N", item.getConfirmado());
+        assertEquals("S", item.getPossuiAnexo());
+        assertEquals("12.5|2026-09-15", item.getVersion());
+    }
+
+    @Test
+    void detalheVazioQuandoANuApuracaoNaoExiste() {
+        BhApuracaoReadAdapter adapter = adapter(Collections.<GradeApuracaoRow>emptyList(),
+                Collections.<DetalheApuracaoRow>emptyList());
+
+        assertFalse(adapter.findById(Integer.valueOf(185044207),
+                new AuthorizationContext("10")).isPresent());
+    }
+
     private static BhApuracaoReadAdapter adapter(final List<GradeApuracaoRow> rows) {
+        return adapter(rows, Collections.<DetalheApuracaoRow>emptyList());
+    }
+
+    private static BhApuracaoReadAdapter adapter(final List<GradeApuracaoRow> rows,
+            final List<DetalheApuracaoRow> detalhe) {
         BhApuracaoRepository repository = (BhApuracaoRepository) Proxy.newProxyInstance(
                 BhApuracaoRepository.class.getClassLoader(),
                 new Class<?>[] { BhApuracaoRepository.class },
@@ -89,6 +123,10 @@ class BhApuracaoReadAdapterTest {
                             assertEquals("N", args[3]);
                             return rows;
                         }
+                        if ("findDetalhe".equals(method.getName())) {
+                            assertEquals(Integer.valueOf(185044207), args[0]);
+                            return detalhe;
+                        }
                         return null;
                     }
                 });
@@ -97,6 +135,37 @@ class BhApuracaoReadAdapterTest {
 
     private static ApuracaoFilter filter(String mes) {
         return new ApuracaoFilter(mes, true, null, null, null, 0, 50, null, null);
+    }
+
+    private static DetalheApuracaoRow detalheConhecido() {
+        return (DetalheApuracaoRow) Proxy.newProxyInstance(
+                DetalheApuracaoRow.class.getClassLoader(),
+                new Class<?>[] { DetalheApuracaoRow.class },
+                new InvocationHandler() {
+                    @Override
+                    public Object invoke(Object proxy, Method method, Object[] args) {
+                        String name = method.getName();
+                        if ("getNuapuracao".equals(name)) {
+                            return new BigDecimal("185044207");
+                        }
+                        if ("getCodconta".equals(name)) {
+                            return "10";
+                        }
+                        if ("getDtvenc".equals(name)) {
+                            return "2026-09-15";
+                        }
+                        if ("getValor".equals(name)) {
+                            return new BigDecimal("12.50");
+                        }
+                        if ("getConfirmado".equals(name)) {
+                            return "N";
+                        }
+                        if ("getPossuianexo".equals(name)) {
+                            return "S";
+                        }
+                        return null;
+                    }
+                });
     }
 
     private static GradeApuracaoRow linhaConhecida() {

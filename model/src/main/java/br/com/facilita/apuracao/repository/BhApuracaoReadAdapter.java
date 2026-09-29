@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.google.inject.Inject;
 
@@ -15,7 +17,6 @@ import br.com.facilita.apuracao.domain.ApuracaoPage;
 import br.com.facilita.apuracao.domain.ApuracaoSnapshot;
 import br.com.facilita.apuracao.error.ApuracaoBusinessException;
 import br.com.facilita.apuracao.api.error.ErrorCode;
-import br.com.facilita.apuracao.model.BhApuracao;
 import br.com.facilita.apuracao.port.ApuracaoQuery;
 import br.com.facilita.apuracao.port.AuthorizationContext;
 import br.com.sankhya.studio.stereotypes.Component;
@@ -23,6 +24,8 @@ import br.com.sankhya.studio.stereotypes.Component;
 /** Leitura de BH_FACAPU por chave e pela grade do mes. */
 @Component
 public final class BhApuracaoReadAdapter implements ApuracaoQuery {
+
+    private static final Logger LOGGER = Logger.getLogger(BhApuracaoReadAdapter.class.getName());
 
     private final BhApuracaoRepository repository;
 
@@ -46,6 +49,7 @@ public final class BhApuracaoReadAdapter implements ApuracaoQuery {
         try {
             rows = repository.findGrade(inicio, fim, somentePendentes, possuiAnexo);
         } catch (RuntimeException exception) {
+            LOGGER.log(Level.SEVERE, "Falha ao listar a grade de " + inicio, exception);
             throw new ApuracaoBusinessException(ErrorCode.INTEGRATION,
                     "Nao foi possivel consultar a apuracao no Om.");
         }
@@ -58,16 +62,45 @@ public final class BhApuracaoReadAdapter implements ApuracaoQuery {
     @Override
     public Optional<ApuracaoSnapshot> findById(Integer nuApuracao,
             AuthorizationContext context) {
+        List<DetalheApuracaoRow> rows;
         try {
-            Optional<BhApuracao> found = repository.findByNuApuracao(nuApuracao);
-            if (found == null || !found.isPresent()) {
-                return Optional.empty();
-            }
-            return Optional.of(BhApuracaoSnapshotMapper.toSnapshot(found.get()));
-        } catch (Exception exception) {
+            rows = repository.findDetalhe(nuApuracao);
+        } catch (RuntimeException exception) {
+            LOGGER.log(Level.SEVERE, "Falha ao consultar a apuracao " + nuApuracao, exception);
             throw new ApuracaoBusinessException(ErrorCode.INTEGRATION,
-                    "Não foi possível consultar a apuração no Om.");
+                    "Nao foi possivel consultar a apuracao no Om.");
         }
+        if (rows == null || rows.isEmpty() || rows.get(0) == null) {
+            return Optional.empty();
+        }
+        return Optional.of(toSnapshot(rows.get(0)));
+    }
+
+    private static ApuracaoSnapshot toSnapshot(DetalheApuracaoRow row) {
+        return ApuracaoSnapshot.builder()
+                .nuApuracao(toInteger(row.getNuapuracao()))
+                .codConta(row.getCodconta())
+                .numContrato(row.getNumcontrato())
+                .nuNota(row.getNunota())
+                .sequenciaCon(row.getSequenciacon())
+                .operadora(row.getOperadora())
+                .cliente(row.getCliente())
+                .codVend(row.getCodvend())
+                .referencia(row.getReferencia())
+                .referenciaAdiada(row.getReferenciaadiada())
+                .dtVenc(row.getDtvenc())
+                .valor(row.getValor())
+                .valorRef(row.getValorref())
+                .confirmado(row.getConfirmado())
+                .auditoriaFinalizada(row.getAuditoriafinalizada())
+                .emailEnviado(row.getEmailenviado())
+                .faturamentoLiberado(row.getFaturamentoliberado())
+                .nuFila(row.getNufila())
+                .plano(row.getPlano())
+                .idInstPrn(row.getIdinstprn())
+                .possuiAnexo(row.getPossuianexo())
+                .version(BhApuracaoObservedVersion.format(row.getValor(), row.getDtvenc()))
+                .build();
     }
 
     private static YearMonth monthOf(String mesReferencia) {

@@ -38,4 +38,24 @@ public interface BhApuracaoRepository extends JapeRepository<Integer, BhApuracao
             @Parameter(name = "fim") String fim,
             @Parameter(name = "somentePendentes") String somentePendentes,
             @Parameter(name = "possuiAnexo") String possuiAnexo);
+
+    @NativeQuery("SELECT APU.NUAPURACAO, TO_CHAR(APU.CODCONTA) AS CODCONTA, "
+            + "TO_CHAR(APU.NUMCONTRATO) AS NUMCONTRATO, TO_CHAR(APU.NUNOTA) AS NUNOTA, "
+            + "TO_CHAR(APU.SEQUENCIACON) AS SEQUENCIACON, TO_CHAR(APU.OPERADORA) AS OPERADORA, "
+            + "TO_CHAR(APU.CLIENTE) AS CLIENTE, TO_CHAR(APU.CODVEND) AS CODVEND, "
+            + "TO_CHAR(APU.REFERENCIA, 'YYYY-MM-DD') AS REFERENCIA, "
+            + "TO_CHAR(APU.REFERENCIAADIADA, 'YYYY-MM-DD') AS REFERENCIAADIADA, "
+            + "TO_CHAR(APU.DTVENC, 'YYYY-MM-DD') AS DTVENC, APU.VALOR, APU.VALORREF, "
+            + "NVL(APU.CONFIRMADO, 'N') AS CONFIRMADO, "
+            + "NVL(APU.AUDITORIAFINALIZADA, 'N') AS AUDITORIAFINALIZADA, "
+            + "NVL(APU.EMAILENVIADO, 'N') AS EMAILENVIADO, "
+            + "NVL(APU.FATURAMENTOLIBERADO, 'N') AS FATURAMENTOLIBERADO, "
+            + "TO_CHAR(APU.NUFILA) AS NUFILA, TO_CHAR(APU.PLANO) AS PLANO, "
+            + "TO_CHAR(APU.IDINSTPRN) AS IDINSTPRN, "
+            + "CASE WHEN EXISTS (SELECT 1 FROM TSIANX ANX "
+            + "WHERE ANX.NOMEINSTANCIA = 'bhApuracao' "
+            + "AND ANX.PKREGISTRO = TO_CHAR(APU.NUAPURACAO) || '_bhApuracao') "
+            + "THEN 'S' ELSE 'N' END AS POSSUIANEXO "
+            + "FROM BH_FACAPU APU WHERE APU.NUAPURACAO = :nuApuracao")
+    List<DetalheApuracaoRow> findDetalhe(@Parameter(name = "nuApuracao") Integer nuApuracao);
 }

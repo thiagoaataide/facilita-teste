@@ -25,7 +25,7 @@ buildscript {
 // da primeira publicação do componente.
 group = 'br.com.facilitatelecom.apuracao.fatura'
 //Especifica a versão do addon. É útil para controle de versões, deploys e compatibilidade com o sistema.
-version="1.0.4"
+version="1.0.5"
 //Define uma breve descrição do addon, explicando sua funcionalidade ou objetivo principal.
 description = "Facilita - Service Provider da Apuração de Faturas"
 
