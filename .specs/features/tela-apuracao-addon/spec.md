@@ -113,6 +113,9 @@ Dimensões fora do escopo desta tela: expiração de dado, limite de taxa e paga
 - WHEN `nuApuracao` não é inteiro positivo, ou passa de `2147483647` THEN a fachada SHALL responder `VALIDATION` e SHALL não consultar.
 - WHEN a sessão não tem usuário THEN a fachada SHALL responder `FORBIDDEN`.
 - WHEN a consulta de anexo falha THEN a fachada SHALL responder `INTEGRATION` com mensagem segura, e o detalhe técnico SHALL ficar só no log, com a chave da apuração.
+- WHEN `confirmar` recebe uma apuração sem valor THEN a fachada SHALL responder `VALIDATION` e SHALL não gravar.
+- WHEN `confirmar` recebe uma apuração já confirmada ou com auditoria finalizada THEN a fachada SHALL responder `CONFLICT` e SHALL não gravar. Confirmar não reabre a apuração; isso é só `solicitarNovaAuditoria`.
+- WHEN a versão enviada em `confirmar` ou `solicitarNovaAuditoria` não é a vigente THEN a fachada SHALL responder `CONFLICT` e SHALL não gravar.
 
 ---
 
@@ -129,9 +132,9 @@ Dimensões fora do escopo desta tela: expiração de dado, limite de taxa e paga
 | TELA-07 | P1: anexo ausente | F3 | Done |
 | TELA-08 | P1: erro visível | F1 | Done |
 | TELA-15 | P1: filtros de mês, pendentes e anexo | F2 | Done |
-| TELA-09 | P2: confirmar | F4 | Pending |
-| TELA-10 | P2: nova auditoria permitida | F4 | Pending |
-| TELA-11 | P2: nova auditoria recusada | F4 | Pending |
+| TELA-09 | P2: confirmar | F4 | In Tasks |
+| TELA-10 | P2: nova auditoria permitida | F4 | In Tasks |
+| TELA-11 | P2: nova auditoria recusada | F4 | In Tasks |
 | TELA-12 | P2: atualizar com versão vigente | F5 | Pending |
 | TELA-13 | P2: conflito de versão | F5 | Pending |
 | TELA-14 | P3: arquivo e tarefa bloqueados | F6 | Pending |

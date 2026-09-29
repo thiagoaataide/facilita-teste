@@ -3,7 +3,7 @@
 **Spec**: `.specs/features/tela-apuracao-addon/spec.md`
 **Status**: Approved
 
-Cobre F1–F3 (TELA-01 a TELA-08). F4–F6 permanecem na spec e não entram neste desenho.
+Cobre F1–F3 (TELA-01 a TELA-08, TELA-15), aprovado e entregue. A F4 está na seção [F4 — Confirmar e nova auditoria](#f4--confirmar-e-nova-auditoria), em rascunho. F5 e F6 não entram neste desenho.
 
 ## Architecture Overview
 
@@ -119,3 +119,140 @@ Filtro inicial: `mesReferencia` no mês corrente `YYYY-MM`, `somentePendentes` v
 | Uma tela | `ApuracaoTrabalho` substitui o item de menu | A spec tira **Chamada da fachada** na F1 |
 | Indicador de anexo | `EXISTS` em `TSIANX` | É o critério que o gadget e a listagem comprovada usam |
 | F4–F6 | Fora deste desenho | Confirmar, atualizar, upload e tarefa não são o MVP |
+
+---
+
+## F4 — Confirmar e nova auditoria
+
+**Status**: Draft
+**Requisitos**: TELA-09, TELA-10, TELA-11 e os três edge cases de `confirmar`/`solicitarNovaAuditoria` da spec.
+
+### Visão geral
+
+Os casos de uso já existem: `ConfirmarApuracaoBusiness`, `SolicitarNovaAuditoriaBusiness` e os executores `@Transactional`. O que falta está na borda:
+
+- `BhApuracaoJapeStore.findById` ainda lê por `@Criteria` na entidade parcial. Foi essa leitura que quebrou o detalhe no Om.
+- `BhApuracaoJapeStore.confirm` e `requestNewAudit` lançam "aguarda homologação".
+- `FailClosedAuthorizationPort` recusa `CONFIRM` e `REQUEST_NEW_AUDIT`.
+- A tela não tem os botões.
+
+```mermaid
+graph TD
+    Tela[ApuracaoTrabalho: Confirmar / Nova auditoria] -->|ServiceProxy| SP[ApuracaoDashboardSP]
+    SP --> Conf[ConfirmarApuracaoBusiness]
+    SP --> Nova[SolicitarNovaAuditoriaBusiness]
+    Conf --> Auth[FailClosedAuthorizationPort]
+    Nova --> Auth
+    Auth -->|BH_NOVAAUDIT| Tsiusu[(TSIUSU)]
+    Conf --> ExecC[TransactionalApuracaoConfirmExecutor]
+    Nova --> ExecN[TransactionalApuracaoNewAuditExecutor]
+    ExecC --> Store[BhApuracaoJapeStore]
+    ExecN --> Store
+    Store -->|UPDATE condicional| Facapu[(BH_FACAPU)]
+```
+
+### Abordagens de gravação
+
+| Abordagem | Como grava | Prós | Contras |
+| --- | --- | --- | --- |
+| **A. UPDATE nativo condicional (recomendada)** | `@Modifying @NativeQuery` com o estado e a versão no `WHERE`; depois relê pelo SQL nativo do detalhe | Mesmo caminho de leitura já comprovado no Om. A condição no `WHERE` evita gravar sobre estado ou versão velhos | Não passa pelos eventos JAPE da instância `bhApuracao`; triggers do banco continuam valendo |
+| B. `save` da entidade JAPE, como o legado | Carrega `BhApuracao`, altera os campos e chama `repository.save` | Dispara os eventos JAPE, como `dao.save` do legado | A carga da entidade parcial falhou no Om e a causa não foi registrada. Seria preciso provar antes |
+
+A escolha é **A**. No fonte legado não há listener ou evento programável sobre `BH_FACAPU`. Registrar no UAT que a confirmação não quebrou nada no Om.
+
+### Idempotência
+
+A porta `ApuracaoStore.confirm` pede que a chave idempotente seja reconhecida em um replay. Isso exige guardar a chave, e o projeto não cria tabela. A proposta é a idempotência pelo próprio estado:
+
+- A gravação só acontece se a linha ainda estiver no estado esperado e com a mesma versão.
+- Um reenvio depois do commit encontra a linha já confirmada e recebe `CONFLICT`, sem segundo efeito.
+- A `idempotencyKey` continua obrigatória no contrato e vai para o log. Não é persistida.
+
+Essa proposta muda o contrato escrito na porta. Por isso vira a decisão AD-008 no `STATE.md`, para aprovação.
+
+### Componentes
+
+#### Leitura do store
+
+- **Onde**: `BhApuracaoJapeStore.findById`, `BhApuracaoSnapshotMapper`
+- **O quê**: o store passa a ler por `repository.findDetalhe`. O mapeamento de `DetalheApuracaoRow` para `ApuracaoSnapshot` sai de `BhApuracaoReadAdapter` e vai para `BhApuracaoSnapshotMapper`, usado pelos dois.
+- **Reusa**: `findDetalhe`, `BhApuracaoObservedVersion.format`
+
+#### Confirmar
+
+- **Onde**: `BhApuracaoRepository`, `BhApuracaoJapeStore.confirm`
+- **SQL**:
+
+```sql
+UPDATE BH_FACAPU SET CONFIRMADO = 'S'
+ WHERE NUAPURACAO = :nuApuracao
+   AND NVL(CONFIRMADO, 'N') <> 'S'
+   AND NVL(AUDITORIAFINALIZADA, 'N') <> 'S'
+   AND VALOR IS NOT NULL
+   AND NVL(TO_CHAR(VALOR), '#') = NVL(:valor, '#')
+   AND NVL(TO_CHAR(DTVENC, 'YYYY-MM-DD'), '#') = NVL(:dtVenc, '#')
+```
+
+- **Antes do UPDATE**: lê a linha. Sem valor vira `VALIDATION`; confirmada ou com auditoria finalizada vira `CONFLICT`; versão diferente vira `CONFLICT`.
+- **Depois do UPDATE**: relê. Se a linha não ficou confirmada, outro usuário mudou entre a leitura e a gravação: `CONFLICT`.
+- A versão é quebrada em valor e vencimento pelo mesmo formato de `BhApuracaoObservedVersion`.
+
+#### Nova auditoria
+
+- **Onde**: `BhApuracaoRepository`, `BhApuracaoJapeStore.requestNewAudit`
+- **SQL**:
+
+```sql
+UPDATE BH_FACAPU
+   SET CONFIRMADO = 'N', AUDITORIAFINALIZADA = 'N', EMAILENVIADO = 'N',
+       FATURAMENTOLIBERADO = 'N', IDINSTPRN = NULL
+ WHERE NUAPURACAO = :nuApuracao
+   AND NVL(CONFIRMADO, 'N') = 'S'
+   AND NVL(TO_CHAR(VALOR), '#') = NVL(:valor, '#')
+   AND NVL(TO_CHAR(DTVENC, 'YYYY-MM-DD'), '#') = NVL(:dtVenc, '#')
+```
+
+- Mesmos campos que o legado limpa. `VALOR`, `DTVENC` e anexos ficam como estão.
+- Relê depois do UPDATE. Se continuar confirmada: `CONFLICT`.
+
+#### Autorização
+
+- **Onde**: `FailClosedAuthorizationPort`, entidade parcial `Usuario` (`TSIUSU`, só `CODUSU` e `BH_NOVAAUDIT`) e `UsuarioRepository`
+- **Regra**:
+  - `CONFIRM` passa para o usuário da sessão. O legado não exige permissão para confirmar.
+  - `REQUEST_NEW_AUDIT` passa só se `NVL(BH_NOVAAUDIT, 'N') = 'S'` em `TSIUSU` para o `CODUSU` da sessão. Caso contrário: `FORBIDDEN`.
+  - `UPDATE`, `ATTACH` e `VIEW_TASK` seguem fechados.
+- **SQL**: `SELECT NVL(BH_NOVAAUDIT, 'N') AS BH_NOVAAUDIT FROM TSIUSU WHERE CODUSU = :codUsu`
+- Falha na leitura da flag nega com `FORBIDDEN` e grava a causa no log.
+
+#### Tela
+
+- **Onde**: `ApuracaoTrabalho.html` e `ApuracaoTrabalho.js`
+- No detalhe: **Confirmar** quando `confirmado` é `N`; **Solicitar nova auditoria** quando é `S`.
+- Envia `nuApuracao`, a `version` do detalhe exibido e uma `idempotencyKey` nova por clique.
+- Em sucesso, mostra o detalhe devolvido e refaz a grade. Em erro, mostra `code`, `message` e `correlationId`.
+- O botão fica desabilitado enquanto a chamada está em curso.
+
+### Tratamento de erros
+
+| Cenário | Código | O usuário vê |
+| --- | --- | --- |
+| Confirmar sem valor | `VALIDATION` | Mensagem de valor obrigatório |
+| Confirmar linha já confirmada ou finalizada | `CONFLICT` | Recarregue os dados |
+| Versão diferente da exibida | `CONFLICT` | Recarregue os dados |
+| Nova auditoria sem `BH_NOVAAUDIT = 'S'` | `FORBIDDEN` | Sem permissão para nova auditoria |
+| Falha de SQL na gravação | `INTEGRATION` | Mensagem segura; causa no log |
+
+### Riscos
+
+| Risco | Onde | Mitigação |
+| --- | --- | --- |
+| `TSIUSU.BH_NOVAAUDIT` não confirmado no Om de produção | autorização | Tarefa T1 confirma a coluna antes de codificar a regra. O legado lê esse campo |
+| UPDATE nativo não dispara eventos JAPE de `bhApuracao` | `BhApuracaoJapeStore` | Nenhum listener no fonte legado. O UAT confere a linha depois de confirmar |
+| Reenvio depois do commit devolve `CONFLICT`, não sucesso | contrato da porta | AD-008; a tela desabilita o botão e recarrega o detalhe |
+| `atualizar` (F5) continua com `loadEntity` por `@Criteria` | `BhApuracaoJapeStore.updateEditableFields` | Fora da F4. Tratar no desenho da F5 |
+| Mensagens com acento aparecem quebradas no Om | fontes em UTF-8 | Mensagens novas sem acento; conversão para ISO-8859-1 em tarefa própria |
+
+### Invariante de schema
+
+Nenhum DDL. `UPDATE` só nas colunas que o legado já grava em `BH_FACAPU`. `TSIUSU` é só lida. As entidades novas são parciais e nativas (`isNativeTable = true`); `autoDDL` continua `false`.

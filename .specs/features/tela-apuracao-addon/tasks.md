@@ -11,7 +11,7 @@ Implement these tasks with the `tlc-spec-driven` skill: **activate it by name an
 **Design**: `.specs/features/tela-apuracao-addon/design.md`
 **Status**: Done
 
-Escopo desta lista: F1–F3, requisitos TELA-01 a TELA-08. F4–F6 não têm tarefa aqui.
+Escopo da primeira lista: F1–F3, requisitos TELA-01 a TELA-08. A F4 tem lista própria no fim deste arquivo, em [F4 — Tasks](#f4--tasks). F5 e F6 não têm tarefa aqui.
 
 ---
 
@@ -294,3 +294,260 @@ Phase 4:
 | T4 | HTML5 do add-on | none | none | ✅ OK |
 | T5 | HTML5 do add-on | none | none | ✅ OK |
 | T6 | HTML5 do add-on | none | none | ✅ OK |
+
+---
+
+# F4 — Tasks
+
+**Design**: `.specs/features/tela-apuracao-addon/design.md`, seção F4
+**Status**: Draft
+**Requisitos**: TELA-09, TELA-10, TELA-11 e os edge cases de `confirmar`/`solicitarNovaAuditoria`
+
+Test Coverage Matrix, Parallelism Assessment e Gate Check Commands são os da primeira lista, acima, com uma linha a mais para a F4:
+
+| Code Layer | Required Test Type | Coverage Expectation | Location Pattern | Run Command |
+| --- | --- | --- | --- | --- |
+| Store com regra de gravação (`BhApuracaoJapeStore`) | unit | Cada ramo de estado, versão e releitura; repositório falso por `Proxy` | `model/src/test/java/br/com/facilita/apuracao/repository/*Test.java` | `.\gradlew.bat :model:test` com JDK 21 |
+
+O gate é o mesmo: `$env:JAVA_HOME = "C:\Program Files\Java\jdk-21.0.12"; .\gradlew.bat :model:test`. Contagem de partida: 46 testes.
+
+## Execution Plan
+
+### Phase 1
+
+```
+T7
+T8
+```
+
+T7 e T8 não dependem um do outro.
+
+### Phase 2
+
+```
+T8 → T9
+T8 → T10
+T7 → T11
+```
+
+### Phase 3
+
+```
+T9 → T12
+T10 → T12
+T11 → T12
+```
+
+---
+
+## Task Breakdown
+
+### T7: Confirmar `TSIUSU.BH_NOVAAUDIT` no Om [P]
+
+**What**: Provar que a coluna existe em produção, com tipo e tamanho, antes de codificar a regra.
+**Where**: `.specs/features/apuracao-dashboard-service-provider/evidencias/om-teste-metadata.md` (acrescentar seção)
+**Depends on**: None
+**Reuses**: consulta de metadata já usada para `TSIANX`
+**Requirement**: TELA-10, TELA-11
+
+**Tools**:
+
+- MCP: `user-sankhya` (somente `SELECT`, precisa da sua aprovação) ou você roda a consulta
+- Skill: NONE
+
+**Done when**:
+
+- [ ] `SELECT COLUMN_NAME, DATA_TYPE, DATA_LENGTH FROM ALL_TAB_COLUMNS WHERE TABLE_NAME = 'TSIUSU' AND COLUMN_NAME = 'BH_NOVAAUDIT'` devolve uma linha
+- [ ] Evidência registrada sem dados de usuários
+
+**Tests**: none
+**Gate**: none (evidência)
+
+**Commit**: `docs(evidencia): registra BH_NOVAAUDIT em TSIUSU`
+
+---
+
+### T8: Store lê a linha por SQL nativo [P]
+
+**What**: `BhApuracaoJapeStore.findById` passa a usar `findDetalhe`. O mapeamento de `DetalheApuracaoRow` vai para `BhApuracaoSnapshotMapper`, usado também por `BhApuracaoReadAdapter`.
+**Where**: `BhApuracaoJapeStore.java`, `BhApuracaoSnapshotMapper.java`, `BhApuracaoReadAdapter.java`
+**Depends on**: None
+**Reuses**: `findDetalhe`, `BhApuracaoObservedVersion.format`
+**Requirement**: TELA-09, TELA-10
+
+**Tools**:
+
+- MCP: NONE
+- Skill: `repository`, `test`
+
+**Done when**:
+
+- [ ] `findById` devolve o snapshot com valor, vencimento, confirmado e versão
+- [ ] Linha inexistente devolve `Optional.empty()`
+- [ ] Falha de SQL vira `INTEGRATION` e a causa vai para o log
+- [ ] Os testes de `BhApuracaoReadAdapterTest` continuam passando
+- [ ] Gate: `.\gradlew.bat :model:test` com JDK 21
+
+**Tests**: unit
+**Gate**: quick
+
+**Commit**: `refactor(apuracao): le a apuracao do store por SQL nativo`
+
+---
+
+### T9: Gravar a confirmação
+
+**What**: `confirm` faz o UPDATE condicional do desenho e relê a linha. Sem valor: `VALIDATION`. Já confirmada, finalizada ou com versão diferente: `CONFLICT`. Se a releitura não mostrar a linha confirmada: `CONFLICT`. Atualizar o Javadoc de `ApuracaoStore.confirm` conforme AD-008.
+**Where**: `BhApuracaoRepository.java`, `BhApuracaoJapeStore.java`, `ApuracaoStore.java`
+**Depends on**: T8
+**Reuses**: `TransactionalApuracaoConfirmExecutor` (já `@Transactional`), `BhApuracaoObservedVersion`
+**Requirement**: TELA-09
+
+**Tools**:
+
+- MCP: NONE
+- Skill: `repository`, `test`
+
+**Done when**:
+
+- [ ] Apuração aberta com valor chama o UPDATE com `nuApuracao`, valor e vencimento da versão, e devolve `confirmado = S`
+- [ ] Sem valor: `VALIDATION`, sem UPDATE
+- [ ] Já confirmada ou com auditoria finalizada: `CONFLICT`, sem UPDATE
+- [ ] Versão diferente: `CONFLICT`, sem UPDATE
+- [ ] Releitura ainda não confirmada: `CONFLICT`
+- [ ] O SQL não tem `SELECT *` nem concatenação de entrada; só altera `CONFIRMADO`
+- [ ] Gate: `.\gradlew.bat :model:test` com JDK 21
+
+**Tests**: unit
+**Gate**: quick
+
+**Commit**: `feat(apuracao): grava a confirmacao com UPDATE condicional`
+
+---
+
+### T10: Gravar a nova auditoria
+
+**What**: `requestNewAudit` faz o UPDATE condicional do desenho e relê. Não confirmada ou versão diferente: `CONFLICT`. Se a releitura continuar confirmada: `CONFLICT`.
+**Where**: `BhApuracaoRepository.java`, `BhApuracaoJapeStore.java`
+**Depends on**: T8
+**Reuses**: `TransactionalApuracaoNewAuditExecutor`
+**Requirement**: TELA-10
+
+**Tools**:
+
+- MCP: NONE
+- Skill: `repository`, `test`
+
+**Done when**:
+
+- [ ] Apuração confirmada devolve `confirmado`, `auditoriaFinalizada`, `emailEnviado` e `faturamentoLiberado` iguais a `N` e `idInstPrn` nulo
+- [ ] Valor e vencimento ficam iguais
+- [ ] Não confirmada ou versão diferente: `CONFLICT`, sem UPDATE
+- [ ] O SQL só altera as cinco colunas que o legado limpa
+- [ ] Gate: `.\gradlew.bat :model:test` com JDK 21
+
+**Tests**: unit
+**Gate**: quick
+
+**Commit**: `feat(apuracao): grava a nova auditoria com UPDATE condicional`
+
+---
+
+### T11: Autorizar confirmar e nova auditoria
+
+**What**: `CONFIRM` passa para o usuário da sessão. `REQUEST_NEW_AUDIT` passa só com `BH_NOVAAUDIT = 'S'` em `TSIUSU`. Criar a entidade parcial `Usuario` e o `UsuarioRepository`, e injetar no `FailClosedAuthorizationPort`.
+**Where**: `model/Usuario.java`, `repository/UsuarioRepository.java`, `security/FailClosedAuthorizationPort.java`
+**Depends on**: T7
+**Reuses**: `FailClosedAuthorizationPortTest`
+**Requirement**: TELA-10, TELA-11
+
+**Tools**:
+
+- MCP: NONE
+- Skill: `entity`, `repository`, `dependency-injection`, `test`
+
+**Done when**:
+
+- [ ] `CONFIRM` não lança para usuário da sessão
+- [ ] `REQUEST_NEW_AUDIT` com `S` não lança
+- [ ] `REQUEST_NEW_AUDIT` com `N` ou sem linha: `FORBIDDEN`
+- [ ] Falha ao ler a flag: `FORBIDDEN`, com a causa no log
+- [ ] `UPDATE`, `ATTACH` e `VIEW_TASK` continuam `FORBIDDEN`
+- [ ] Entidade com `isNativeTable = true`; nenhum DDL
+- [ ] Gate: `.\gradlew.bat :model:test` com JDK 21
+
+**Tests**: unit
+**Gate**: quick
+
+**Commit**: `feat(auth): libera confirmar e nova auditoria pela regra do legado`
+
+---
+
+### T12: Botões na tela
+
+**What**: No detalhe, **Confirmar** quando `confirmado = N` e **Solicitar nova auditoria** quando `confirmado = S`. Envia `nuApuracao`, `version` do detalhe e uma `idempotencyKey` nova. Em sucesso, mostra o detalhe devolvido e refaz a grade.
+**Where**: `vc/src/main/webapp/html5/ApuracaoTrabalho/ApuracaoTrabalho.html`, `ApuracaoTrabalho.js`
+**Depends on**: T9, T10, T11
+**Reuses**: `chamar`, `mostrarErro`, `listar`
+**Requirement**: TELA-09, TELA-10, TELA-11
+
+**Tools**:
+
+- MCP: NONE
+- Skill: NONE
+
+**Done when**:
+
+- [ ] Só um dos botões aparece, conforme `confirmado`
+- [ ] O botão fica desabilitado durante a chamada
+- [ ] Erro mostra `code`, `message` e `correlationId`
+- [ ] `node --check` passa no JavaScript
+- [ ] Gate: `.\gradlew.bat :model:test` com JDK 21 continua passando
+
+**Tests**: none
+**Gate**: build
+
+**Commit**: `feat(tela): confirma e pede nova auditoria pelo detalhe`
+
+---
+
+## UAT da F4 (depois de instalar)
+
+1. Confirmar uma apuração aberta com valor e ver `confirmado = S` no detalhe e na grade.
+2. Tentar confirmar uma apuração sem valor e ver `VALIDATION`.
+3. Com um usuário com `BH_NOVAAUDIT = 'S'`, pedir nova auditoria de uma confirmada e ver os quatro campos em `N` e `idInstPrn` vazio.
+4. Com um usuário sem a flag, pedir nova auditoria e ver `FORBIDDEN`; a linha continua confirmada.
+5. Abrir o detalhe em duas abas, confirmar numa e tentar na outra: `CONFLICT`.
+
+## Task Granularity Check
+
+| Task | Scope | Status |
+| --- | --- | --- |
+| T7: Evidência da coluna | 1 consulta de metadata | ✅ Granular |
+| T8: Leitura do store | 1 método + mapper compartilhado | ✅ Granular |
+| T9: Confirmar | 1 query + 1 método | ✅ Granular |
+| T10: Nova auditoria | 1 query + 1 método | ✅ Granular |
+| T11: Autorização | 1 regra + entidade parcial e repositório | ⚠️ 3 arquivos coesos |
+| T12: Botões | 1 tela | ✅ Granular |
+
+## Diagram-Definition Cross-Check
+
+| Task | Depends On (task body) | Diagram Shows | Status |
+| --- | --- | --- | --- |
+| T7 | None | Phase 1, sem entrada | ✅ Match |
+| T8 | None | Phase 1, sem entrada | ✅ Match |
+| T9 | T8 | T8 → T9 | ✅ Match |
+| T10 | T8 | T8 → T10 | ✅ Match |
+| T11 | T7 | T7 → T11 | ✅ Match |
+| T12 | T9, T10, T11 | T9, T10, T11 → T12 | ✅ Match |
+
+## Test Co-location Validation
+
+| Task | Code Layer | Matrix Requires | Task Says | Status |
+| --- | --- | --- | --- | --- |
+| T7 | Evidência | none | none | ✅ OK |
+| T8 | Repository/store | unit | unit | ✅ OK |
+| T9 | Repository/store | unit | unit | ✅ OK |
+| T10 | Repository/store | unit | unit | ✅ OK |
+| T11 | Autorização | unit | unit | ✅ OK |
+| T12 | HTML5 do add-on | none | none | ✅ OK |

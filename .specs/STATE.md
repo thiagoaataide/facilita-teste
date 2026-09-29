@@ -74,13 +74,22 @@
 - **Date**: 2026-09-29
 - **Status**: active
 
+### AD-008 — Gravação da apuração por UPDATE nativo condicional, sem tabela de idempotência
+
+- **Decision**: `confirmar` e `solicitarNovaAuditoria` gravam `BH_FACAPU` com `@Modifying @NativeQuery`, com o estado esperado e a versão (`VALOR|DTVENC`) no `WHERE`, e releem pelo SQL nativo do detalhe. A `idempotencyKey` continua obrigatória no contrato, mas não é guardada. Um reenvio depois do commit recebe `CONFLICT`, sem segundo efeito.
+- **Reason**: A carga da entidade parcial por `@Criteria` falhou no Om, e o SQL nativo foi o caminho comprovado. Guardar a chave exigiria tabela nova, e o projeto não cria DDL.
+- **Trade-off**: O UPDATE nativo não dispara eventos JAPE da instância `bhApuracao`; o fonte legado não mostra listener nessa tabela. O Javadoc de `ApuracaoStore.confirm` deixa de pedir replay pela chave.
+- **Scope**: `BhApuracaoJapeStore`, `BhApuracaoRepository`, `ApuracaoStore` e F4 de `tela-apuracao-addon`. F5 decide à parte como gravar valor e vencimento.
+- **Date**: 2026-09-29
+- **Status**: proposed
+
 ## Handoff
 
 - **Feature**: `.specs/features/tela-apuracao-addon/`
 - **Phase / Task**: F1–F3 concluídas e comprovadas no Om (versão 1.0.6)
 - **Completed**: grade com filtros de mês, pendentes e anexo; detalhe por SQL nativo; anexos de `TSIANX`
 - **In-progress**: nenhuma
-- **Next step**: desenho e tarefas de F4 (confirmar, nova auditoria) e F5 (valor e vencimento)
+- **Next step**: aprovar o desenho da F4, a AD-008 e as tarefas T7–T12; depois executar a partir de T7 e T8
 - **Blockers**: as gravações ainda leem a linha por `@Criteria` na entidade parcial, que falhou no detalhe; fontes Java em UTF-8 quebram acentos no Om
 - **Uncommitted files**: listagem TSIANX anterior, `build.gradle` e esta spec, se ainda não commitados
 - **Branch**: `main`
