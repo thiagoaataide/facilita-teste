@@ -1,0 +1,41 @@
+<sk-application ng-controller="ApuracaoTrabalhoController as ctrl">
+    <div class="apuracao-trabalho">
+        <h1>Apuracao de Faturas</h1>
+        <p class="apuracao-trabalho__erro" ng-if="ctrl.erro">{{ctrl.erro}}</p>
+        <table>
+            <thead>
+                <tr>
+                    <th>Sequencia</th>
+                    <th>Conta</th>
+                    <th>Contrato</th>
+                    <th>Vencimento</th>
+                    <th>Valor</th>
+                    <th>Confirmado</th>
+                    <th>Anexo</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr ng-repeat="item in ctrl.itens" ng-click="ctrl.selecionar(item)">
+                    <td>{{item.nuApuracao}}</td>
+                    <td>{{item.codConta}}</td>
+                    <td>{{item.numContrato}}</td>
+                    <td>{{item.dtVenc}}</td>
+                    <td>{{item.valor}}</td>
+                    <td>{{item.confirmado}}</td>
+                    <td>{{item.possuiAnexo}}</td>
+                </tr>
+            </tbody>
+        </table>
+        <div ng-if="ctrl.detalhe">
+            <h2>Detalhe {{ctrl.detalhe.nuApuracao}}</h2>
+            <pre>{{ctrl.detalheTexto}}</pre>
+        </div>
+        <div>
+            <h2>Anexos</h2>
+            <p ng-if="ctrl.anexos && ctrl.anexos.length === 0">Nenhum anexo.</p>
+            <ul>
+                <li ng-repeat="arquivo in ctrl.anexos">{{arquivo.identifier}} {{arquivo.name}}</li>
+            </ul>
+        </div>
+    </div>
+</sk-application>

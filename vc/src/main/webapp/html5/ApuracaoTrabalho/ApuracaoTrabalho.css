@@ -1,0 +1,22 @@
+.apuracao-trabalho {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.apuracao-trabalho__erro {
+    white-space: pre-wrap;
+}
+
+.apuracao-trabalho table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+.apuracao-trabalho th,
+.apuracao-trabalho td {
+    border-bottom: 1px solid #ddd;
+    text-align: left;
+    padding: 6px 8px;
+}

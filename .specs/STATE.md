@@ -65,40 +65,22 @@
 - **Date**: 2026-09-23
 - **Status**: active
 
+### AD-007 — Tela operacional no HTML5 do add-on
+
+- **Decision**: A tela que executa ações da apuração vive em `vc/src/main/webapp/html5` deste add-on e chama `ServiceProxy.callService("facilita-apuracao-fatura-addon@ApuracaoDashboardSP.{metodo}", ...)`. O gadget de BI permanece só leitura até essa tela cobrir o mesmo uso.
+- **Reason**: O broker de `/mge/service.sbr` não encontra o provedor do add-on. A tela HTML5 do módulo, aberta pelo menu, entrega o `ServiceProxy` e a sessão. `listarAnexos` da apuração `185045240` retornou o anexo `199605` de `TSIANX` em 2026-09-29.
+- **Trade-off**: O `appKey` continua sendo a identidade da solução no Place, e não o prefixo da chamada. Enviar arquivo e abrir tarefa continuam fora até haver contrato homologado.
+- **Scope**: menu `FACAPU`, telas HTML5 do add-on e todas as chamadas de `ApuracaoDashboardSP` feitas pela UI.
+- **Date**: 2026-09-29
+- **Status**: active
+
 ## Handoff
 
-- **Feature**: `.specs/features/apuracao-dashboard-service-provider/`
-- **Phase / Task**: Tasks / HTML5 T22 (UAT manual) → T15 homologação Om → T16
-- **T9 status**: parcial — `allowsNewAudit()` removido do caso de uso; permissão
-  fica só em `AuthorizationPort`; gravação de nova auditoria segue fail-closed
-  até T16
-- **T15 status**: parcial — `BhApuracaoJapeStore` habilita `atualizar` via JAPE;
-  token provisório `{valor}|{dtVenc}`; confirmação/reauditoria ainda bloqueadas
-- **Completed**: configuração segura, appKey oficial confirmado no Portal,
-  fachada `ApuracaoDashboardSP`, artefato `.exts` gerado, DTOs/envelope, T7/T8,
-  executor transacional T9 existente, metadata somente leitura e análise do
-  baseline legado; spec/design/contracts/tasks alinhados aos comportamentos
-  observados e às incompatibilidades atuais do gadget
-- **In-progress**: T22 UAT no Om; homologar T15 (autorização real + gravação);
-  T16 confirmação/reauditoria; T10/T11 complementares
-- **Next step**: solicitante executar checklist `evidencias/t22-read-gate-addon.md`;
-  homologar `atualizar` no Om com política de autorização; implementar adapters
-  T16; harmonizar prefixo do provider; revalidar `service-providers.xml` em build
-  com JDK
-- **Blockers**: `FailClosedAuthorizationPort` impede mutações até política Om;
-  a última compilação avisou que `service-providers.xml` foi criado manualmente;
-  build local falhou por JRE 8 sem JDK nesta máquina;
-  `ALL_TAB_COLUMNS` retornou somente metadata de `TSIANX`, enquanto
-  `ALL_CONSTRAINTS` e leituras anteriores de dados da tabela retornaram
-  `Não autorizado`; `TWFITAR` também segue sem autorização. A documentação
-  pública descreve upload/associação genéricos e `CRUDServiceProvider.loadRecords`,
-  mas o acesso à entidade/permissões, a chamada sob a sessão atual do Om,
-  compensação, MIME/limite por arquivo e idempotência para `bhApuracao` seguem
-  sem comprovação
-- **Uncommitted files**: alterações T9 pré-existentes em `.specs/STATE.md`,
-  `.specs/features/apuracao-dashboard-service-provider/{memory.md,tasks.md,contracts.md,evidencias/om-teste-metadata.md}` e
-  `model/src/main/java/br/com/facilita/apuracao/{business/SolicitarNovaAuditoriaBusiness.java,controller/ApuracaoDashboardController.java}`;
-  arquivos novos T9 `TransactionalApuracaoNewAuditExecutor.java` e
-  `port/ApuracaoNewAuditExecutor.java`; T10 em `AnexarBusiness.java`,
-  `AnexarRequest.java` e documentos/evidência do fluxo legado
+- **Feature**: `.specs/features/tela-apuracao-addon/`
+- **Phase / Task**: T1–T6 implementadas no código; falta instalar o pacote no Om
+- **Completed**: leitura liberada; `listar` do mês; tela `ApuracaoTrabalho` no menu
+- **In-progress**: nenhuma
+- **Next step**: gerar o add-on e instalar na Facilita; abrir o menu e conferir a grade e o anexo `199605` da apuração `185045240`
+- **Blockers**: confirmar, atualizar, anexar arquivo e tarefa continuam fechados; a prova no Om ainda não foi feita nesta versão
+- **Uncommitted files**: listagem TSIANX anterior, `build.gradle` e esta spec, se ainda não commitados
 - **Branch**: `main`

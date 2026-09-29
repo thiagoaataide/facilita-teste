@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="iso-8859-1" ?>
+<metadados xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:noNamespaceSchemaLocation="../.gradle/metadados.xsd">
+    <menu id="FACAPU" description="Apura&#231;&#227;o de Faturas Addon" icon="/$ctx/assets/icon.png">
+        <ui id="FACAPU_CHAMADA" url="/$ctx/ApuracaoTrabalho.xhtml5" description="Apura&#231;&#227;o"/>
+    </menu>
+</metadados>
