@@ -8,15 +8,24 @@ angular.module("ApuracaoTrabalhoApp", ["snk"])
             self.detalhe = null;
             self.detalheTexto = "";
             self.anexos = null;
+            self.filtro = {
+                mes: mesCorrente(),
+                somentePendentes: true,
+                possuiAnexo: false
+            };
             self.selecionar = selecionar;
+            self.listar = listar;
 
             listar();
 
             function listar() {
+                self.detalhe = null;
+                self.anexos = null;
                 chamar("listar", {
                     request: {
-                        mesReferencia: mesCorrente(),
-                        somentePendentes: true,
+                        mesReferencia: textoMes(self.filtro.mes),
+                        somentePendentes: self.filtro.somentePendentes === true,
+                        possuiAnexo: self.filtro.possuiAnexo === true,
                         pagina: 0,
                         tamanhoPagina: 500
                     }
@@ -115,8 +124,17 @@ angular.module("ApuracaoTrabalhoApp", ["snk"])
 
             function mesCorrente() {
                 var hoje = new Date();
-                var mes = hoje.getMonth() + 1;
-                var textoMes = mes < 10 ? "0" + mes : String(mes);
-                return hoje.getFullYear() + "-" + textoMes;
+                return new Date(hoje.getFullYear(), hoje.getMonth(), 1);
+            }
+
+            function textoMes(data) {
+                if (typeof data === "string" && /^\d{4}-\d{2}$/.test(data)) {
+                    return data;
+                }
+                if (!(data instanceof Date) || isNaN(data.getTime())) {
+                    data = mesCorrente();
+                }
+                var mes = data.getMonth() + 1;
+                return data.getFullYear() + "-" + (mes < 10 ? "0" + mes : String(mes));
             }
         }]);

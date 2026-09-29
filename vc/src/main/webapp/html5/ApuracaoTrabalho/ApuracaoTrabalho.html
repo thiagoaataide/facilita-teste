@@ -1,7 +1,23 @@
 <sk-application ng-controller="ApuracaoTrabalhoController as ctrl">
     <div class="apuracao-trabalho">
         <h1>Apuracao de Faturas</h1>
+        <div class="apuracao-trabalho__filtros">
+            <label>
+                Mes
+                <input type="month" ng-model="ctrl.filtro.mes"/>
+            </label>
+            <label>
+                <input type="checkbox" ng-model="ctrl.filtro.somentePendentes"/>
+                Somente pendentes
+            </label>
+            <label>
+                <input type="checkbox" ng-model="ctrl.filtro.possuiAnexo"/>
+                Somente com anexo
+            </label>
+            <button default ng-click="ctrl.listar()">Pesquisar</button>
+        </div>
         <p class="apuracao-trabalho__erro" ng-if="ctrl.erro">{{ctrl.erro}}</p>
+        <p ng-if="ctrl.itens.length === 0 && !ctrl.erro">Nenhuma apuracao no filtro.</p>
         <table>
             <thead>
                 <tr>

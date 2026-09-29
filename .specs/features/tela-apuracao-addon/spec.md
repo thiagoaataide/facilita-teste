@@ -28,7 +28,7 @@ O gadget de BI não alcança o `ApuracaoDashboardSP`: o broker de `/mge/service.
 | Abrir ou baixar o PDF | A listagem comprovada devolve identificador e nome, não o arquivo |
 | Enviar anexo e abrir tarefa (F6) | Upload e workflow ainda não têm contrato homologado na sessão do add-on |
 | Substituir o gadget de BI agora | Ele permanece consulta até a tela do add-on cobrir o mesmo uso |
-| Alterar `BH_FACAPU`, `TSIANX` ou `TWFITAR` | Tabelas existentes; o add-on só lê ou grava pelos caminhos já previstos |
+| Criar ou alterar DDL | Invariante do projeto: nenhum `CREATE`, `ALTER` ou `dbscript`. `BH_FACAPU`, `TSIANX` e `TWFITAR` já existem no legado. `autoDDL` permanece `false`. O menu `FACAPU` só registra a tela |
 | Chamar a fachada por `/mge/service.sbr` | Esse broker não encontra o provedor |
 
 ---
@@ -70,6 +70,7 @@ Dimensões fora do escopo desta tela: expiração de dado, limite de taxa e paga
 6. WHEN o usuário pede os anexos da linha `185045240` THEN a fachada SHALL devolver o arquivo `199605` com o nome gravado em `TSIANX`.
 7. WHEN a linha não tem anexo THEN `listarAnexos` SHALL devolver `files` vazio e `ok: true`.
 8. WHEN a fachada recusa THEN a tela SHALL mostrar `code`, `message` e `correlationId` do envelope.
+9. WHEN o usuário muda o mês, desmarca somente pendentes ou marca somente com anexo THEN a tela SHALL chamar `listar` com `mesReferencia`, `somentePendentes` e `possuiAnexo` iguais aos controles.
 
 **Independent Test**: Instalar o pacote, abrir o menu, ver a grade do mês, selecionar `185045240` e ler o nome do PDF `199605`.
 
@@ -127,6 +128,7 @@ Dimensões fora do escopo desta tela: expiração de dado, limite de taxa e paga
 | TELA-06 | P1: anexo conhecido | F3 | Done |
 | TELA-07 | P1: anexo ausente | F3 | Done |
 | TELA-08 | P1: erro visível | F1 | Done |
+| TELA-15 | P1: filtros de mês, pendentes e anexo | F2 | Done |
 | TELA-09 | P2: confirmar | F4 | Pending |
 | TELA-10 | P2: nova auditoria permitida | F4 | Pending |
 | TELA-11 | P2: nova auditoria recusada | F4 | Pending |

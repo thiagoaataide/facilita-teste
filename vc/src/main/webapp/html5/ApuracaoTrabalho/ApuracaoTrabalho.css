@@ -5,6 +5,12 @@
     gap: 12px;
 }
 
+.apuracao-trabalho__filtros {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
 .apuracao-trabalho__erro {
     white-space: pre-wrap;
 }
