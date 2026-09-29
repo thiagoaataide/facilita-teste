@@ -14,9 +14,9 @@ O gadget de BI não alcança o `ApuracaoDashboardSP`: o broker de `/mge/service.
 
 | Feature | Entrega | Depende de | Estado |
 | --- | --- | --- | --- |
-| F1 Casca | Página no add-on com grade, detalhe e botões; menu no lugar de **Chamada da fachada** | AD-007 | Pending |
-| F2 Grade e detalhe | `listar` e `listarDetalhe` para o usuário da sessão | F1 | Pending |
-| F3 Ver anexo | `listarAnexos` na linha selecionada, nome e identificador | F1; fachada já comprovada | Pending |
+| F1 Casca | Página no add-on com grade, detalhe e botões; menu no lugar de **Chamada da fachada** | AD-007 | Done |
+| F2 Grade e detalhe | `listar` e `listarDetalhe` para o usuário da sessão | F1 | Done |
+| F3 Ver anexo | `listarAnexos` na linha selecionada, nome e identificador | F1; fachada já comprovada | Done |
 | F4 Confirmar e nova auditoria | `confirmar` e `solicitarNovaAuditoria` com a regra do legado | F2 | Pending |
 | F5 Valor e vencimento | `atualizar` com a versão já exigida pela fachada | F2 | Pending |
 | F6 Arquivo e tarefa | `anexar` e `getTarefa` | contrato homologado; fora das entregas F1–F5 | Pending |
@@ -142,6 +142,6 @@ Dimensões fora do escopo desta tela: expiração de dado, limite de taxa e paga
 
 ## Success Criteria
 
-- [ ] No Om, a grade do mês abre pelo menu do add-on e a linha `185045240` mostra o anexo `199605`.
+- [x] No Om, a grade do mês abre pelo menu do add-on e a linha selecionada mostra o anexo de `TSIANX` (evidência em `validation.md`).
 - [ ] Confirmar, nova auditoria e alterar valor/vencimento só ocorrem pelos métodos da fachada, com a regra do legado.
 - [ ] Enviar arquivo e abrir tarefa não gravam nada enquanto F6 estiver pendente.

@@ -77,10 +77,10 @@
 ## Handoff
 
 - **Feature**: `.specs/features/tela-apuracao-addon/`
-- **Phase / Task**: T1–T6 implementadas no código; falta instalar o pacote no Om
-- **Completed**: leitura liberada; `listar` do mês; tela `ApuracaoTrabalho` no menu
+- **Phase / Task**: F1–F3 concluídas e comprovadas no Om (versão 1.0.6)
+- **Completed**: grade com filtros de mês, pendentes e anexo; detalhe por SQL nativo; anexos de `TSIANX`
 - **In-progress**: nenhuma
-- **Next step**: gerar o add-on e instalar na Facilita; abrir o menu e conferir a grade e o anexo `199605` da apuração `185045240`
-- **Blockers**: confirmar, atualizar, anexar arquivo e tarefa continuam fechados; a prova no Om ainda não foi feita nesta versão
+- **Next step**: desenho e tarefas de F4 (confirmar, nova auditoria) e F5 (valor e vencimento)
+- **Blockers**: as gravações ainda leem a linha por `@Criteria` na entidade parcial, que falhou no detalhe; fontes Java em UTF-8 quebram acentos no Om
 - **Uncommitted files**: listagem TSIANX anterior, `build.gradle` e esta spec, se ainda não commitados
 - **Branch**: `main`
