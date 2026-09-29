@@ -10,7 +10,7 @@ import br.com.facilita.apuracao.port.AuthorizationContext;
 import br.com.facilita.apuracao.port.AuthorizationPort;
 import br.com.sankhya.studio.stereotypes.Component;
 
-/** Política temporária fail-closed até a permissão do cliente ser homologada. */
+/** Leitura usa o usuario da sessao. Demais acoes seguem fechadas. */
 @Component
 public final class FailClosedAuthorizationPort implements AuthorizationPort {
 
@@ -21,6 +21,11 @@ public final class FailClosedAuthorizationPort implements AuthorizationPort {
     @Override
     public void requireAllowed(AuthorizationAction action, AuthorizationContext context,
             ApuracaoSnapshot apuracao) {
+        if (AuthorizationAction.LIST == action
+                || AuthorizationAction.DETAIL == action
+                || AuthorizationAction.LIST_ATTACHMENTS == action) {
+            return;
+        }
         throw new ApuracaoBusinessException(ErrorCode.FORBIDDEN,
                 "A permissão desta operação ainda não foi homologada no Om.");
     }
