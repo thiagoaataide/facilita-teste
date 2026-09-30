@@ -16,6 +16,13 @@ Fatos que valem para qualquer feature deste add-on. Decisões de arquitetura fic
 - `IDENTIFICADOR` está em `BH_FACCON`. O CPF/CNPJ do nome é `TGFPAR.CGC_CPF` do `TITULARIDADE` da conta. O nome do parceiro na descrição é `TGFPAR.NOMEPARC` da `OPERADORA` da conta. O mês no nome não leva zero (`2026_9`).
 - O botão antigo abre `/facilitatelecom/visualizadorArquivos.facilita?nuApuracao=` e esse caminho lê o anexo mais recente (`DHCAD DESC`). Ele não escolhe um `NUATTACH`. `AnexosModel.putFileSession` não grava o arquivo na sessão: a linha do `putHttpSessionAttribute` está comentada.
 
+## Gravação pelo gadget
+
+- Salvar valor e vencimento no dashboard HTML5 chama `ActionButtonsSP.executeJava` do botão `77` (`atualizarBotaoId` em `tdb_partida.jsp`). Parâmetros texto: `NUAPURACAO`, `VALOR` (`114.95`), `DTVENC` (`yyyy-MM-dd`).
+- O Java grava a instância `bhApuracao`. O `ApuracaoListener` do legado regrava `NUMCONTRATO`, `OPERADORA`, `CLIENTE` e `CODVEND` a partir da configuração da conta na `REFERENCIA`. Não gera contrato.
+- Comprovado em 2026-09-30 na apuração `189300545`: `DTVENC` foi para `05/10/2026` e voltou para `03/10/2026`; `VALOR` permaneceu `114.95`. Os quatro campos do listener bateram (contrato 1, operadora 3649, cliente 1, vendedor 4).
+- Status `1` ou `2` é sucesso e abre o aviso central. Outro status fica no rodapé, com código `FA-`. O `NUAPURACAO` aparece no título "Apuração {n}"; a sequência contratual é outro campo.
+
 ## Chamada da fachada
 
 - Só funciona pela tela HTML5 do add-on, aberta pelo menu `FACAPU`, com `ServiceProxy.callService("facilita-apuracao-fatura-addon@ApuracaoDashboardSP.{metodo}", { request: {...} })`.

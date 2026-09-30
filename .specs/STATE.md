@@ -92,13 +92,23 @@
 - **Date**: 2026-09-30
 - **Status**: active
 
+### AD-010 — Gadget grava valor e vencimento por botão de ação
+
+- **Decision**: No dashboard HTML5, Salvar alterações chama `ActionButtonsSP.executeJava` do botão `77` (`bhApuracao`, "Alterar Vencimento e Valor - HTML5"), com `NUAPURACAO`, `VALOR` e `DTVENC` em texto. A gravação é JAPE na instância `bhApuracao`, para o `ApuracaoListener` do legado rodar. Status `1` e `2` são sucesso e abrem aviso; o rodapé fica para erro. Confirmar, nova auditoria, anexo e tarefa continuam fora desse botão.
+- **Reason**: O gadget não alcança `ApuracaoDashboardSP` em `/mge/service.sbr`. O botão de ação da plataforma alcança, e o `save` da entidade dispara o listener.
+- **Trade-off**: O id `77` é o cadastro dessa base. A fachada do add-on deixa de ser o caminho de escrita do gadget para valor e vencimento.
+- **Scope**: `facilita/apuracao-faturas` no repositório HTML5 (`tdb_partida.jsp`, `javascript/script.js`).
+- **Date**: 2026-09-30
+- **Status**: active
+- **Evidence**: apuração `189300545` gravou `DTVENC` `05/10/2026` e voltou para `03/10/2026`, com `VALOR` `114.95`. `NUMCONTRATO` 1, `OPERADORA` 3649, `CLIENTE` 1 e `CODVEND` 4 bateram com a configuração da conta na referência.
+
 ## Handoff
 
-- **Feature**: `.specs/features/tela-apuracao-addon/`
+- **Feature**: gadget HTML5 `facilita/apuracao-faturas`, com a escrita de valor e vencimento no botão `77` (AD-010). A tela do add-on segue em `.specs/features/tela-apuracao-addon/`.
 - **Phase / Task**: F1–F3 no Om (1.0.6). F4 implementada na 1.0.7, UAT com o cliente. F7 e F8: T13–T18 commitados; T19 sem URL do Om. 1.0.10 troca `@NotBlank` por `@NotNull` + `@Size(min = 1)`: o HV 5 do Om lança `HV000030` e a fachada devolve `INTERNAL`
 - **Completed**: T1–T18. Confirmar e nova auditoria gravam pela entidade JAPE (`findByPK` + `save`); nova auditoria exige `TSIUSU.BH_NOVAAUDIT = 'S'`. Anexar prepara, sobe pelo `AnexoSistemaSP.salvar` e grava o nome do legado
 - **In-progress**: T19 — `abrirAnexo` não devolve URL
-- **Next step**: provar no Om a URL que abre um `NUATTACH` específico e só então preencher `url`. A F4 permanece na tela; o UAT dela fica para uma sessão com o cliente. Se Confirmar devolver `INTEGRATION`, ler no log "Falha ao carregar a entidade da apuracao"
+- **Next step**: no gadget, repetir a estratégia do botão `77` para confirmar e nova auditoria. `abrirAnexo` da tela do add-on continua sem URL de `NUATTACH`.
 - **Blockers**: a carga da entidade `BhApuracao` pelo JAPE ainda não foi comprovada no Om; fontes Java em UTF-8 quebram acentos
 - **Uncommitted files**: listagem TSIANX anterior, `build.gradle` e esta spec, se ainda não commitados
 - **Branch**: `main`
