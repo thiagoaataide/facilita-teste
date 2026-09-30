@@ -5,13 +5,16 @@ Fatos que valem para qualquer feature deste add-on. Decisões de arquitetura fic
 ## Invariantes
 
 - Nenhum DDL, em nenhuma feature. `BH_FACAPU`, `TSIANX`, `TWFITAR` e `TSIUSU` já existem no legado. `autoDDL=false`, entidades com `isNativeTable = true`, sem `dbscripts`.
-- Deploy e publicação só com autorização explícita do usuário. Quem gera e instala o pacote na Facilita é o usuário.
+- Quem gera e instala o pacote na Facilita é o desenvolvedor. O agente não executa `gerarAddon` nem `deployAddon`.
 
 ## Schema comprovado
 
 - `TSIUSU.BH_NOVAAUDIT` existe em produção. Validado pelo usuário antes de 2026-09-29. O legado lê a flag do usuário da sessão.
 - `BH_FACAPU`: PK `NUAPURACAO NUMBER(10,0)`; flags em `VARCHAR2` (`S`/`N`); `VALOR` e `VALORREF` em `FLOAT`; datas em `DATE`. Sem coluna de versão (`AD_DHALTER` não existe).
 - `TSIANX` da apuração: `NOMEINSTANCIA = 'bhApuracao'` e `PKREGISTRO = '{NUAPURACAO}_bhApuracao'`.
+- Associação de arquivo: a tela chama `AnexoSistemaSP.salvar` depois do upload com a chave `ANEXO_SISTEMA_bhApuracao_{NUAPURACAO}`. Documentação oficial: `developer.sankhya.com.br/reference/get_anexaarquivos`. O nome composto (AD-009) é aplicado em seguida pelo add-on, não por esse serviço.
+- `IDENTIFICADOR` está em `BH_FACCON`. O CPF/CNPJ do nome é `TGFPAR.CGC_CPF` do `TITULARIDADE` da conta. O nome do parceiro na descrição é `TGFPAR.NOMEPARC` da `OPERADORA` da conta. O mês no nome não leva zero (`2026_9`).
+- O botão antigo abre `/facilitatelecom/visualizadorArquivos.facilita?nuApuracao=` e esse caminho lê o anexo mais recente (`DHCAD DESC`). Ele não escolhe um `NUATTACH`. `AnexosModel.putFileSession` não grava o arquivo na sessão: a linha do `putHttpSessionAttribute` está comentada.
 
 ## Chamada da fachada
 

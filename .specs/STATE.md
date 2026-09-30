@@ -83,13 +83,22 @@
 - **Date**: 2026-09-29
 - **Status**: active
 
+### AD-009 — Nome do anexo igual ao legado
+
+- **Decision**: Depois de associar o arquivo, `NOMEARQUIVO` fica `{IDENTIFICADOR}_{ano}_{mês sem zero}_{CGC_CPF}_{tipo}{extensão a partir do primeiro ponto}` e `DESCRICAO` fica com o nome do parceiro operadora. `BH_TIPO` recebe o código (`FO`, `2V`, `FA`, `BO`, `NF`, `RE`).
+- **Reason**: O cliente já vê esse nome, inclusive com CPF ou CNPJ. Outro formato gera questionamento.
+- **Trade-off**: O add-on grava dado pessoal no nome do arquivo, como `atualizaTipoAnexo` já grava.
+- **Scope**: anexar da tela do add-on. Abrir tarefa e exclusão na tela ficam de fora.
+- **Date**: 2026-09-30
+- **Status**: active
+
 ## Handoff
 
 - **Feature**: `.specs/features/tela-apuracao-addon/`
-- **Phase / Task**: F1–F3 comprovadas no Om (1.0.6). F4 (T7–T12) implementada na 1.0.7; UAT pendente
-- **Completed**: T1–T12. Confirmar e nova auditoria gravam pela entidade JAPE (`findByPK` + `save`); nova auditoria exige `TSIUSU.BH_NOVAAUDIT = 'S'`
-- **In-progress**: nenhuma
-- **Next step**: gerar e instalar a 1.0.7; rodar o UAT da F4 (roteiro em `tasks.md`). Se Confirmar devolver `INTEGRATION`, ler no log "Falha ao carregar a entidade da apuracao"
+- **Phase / Task**: F1–F3 no Om (1.0.6). F4 implementada na 1.0.7, UAT com o cliente. F7 e F8: T13–T18 commitados; T19 sem URL do Om
+- **Completed**: T1–T18. Confirmar e nova auditoria gravam pela entidade JAPE (`findByPK` + `save`); nova auditoria exige `TSIUSU.BH_NOVAAUDIT = 'S'`. Anexar prepara, sobe pelo `AnexoSistemaSP.salvar` e grava o nome do legado
+- **In-progress**: T19 — `abrirAnexo` não devolve URL
+- **Next step**: provar no Om a URL que abre um `NUATTACH` específico e só então preencher `url`. A F4 permanece na tela; o UAT dela fica para uma sessão com o cliente. Se Confirmar devolver `INTEGRATION`, ler no log "Falha ao carregar a entidade da apuracao"
 - **Blockers**: a carga da entidade `BhApuracao` pelo JAPE ainda não foi comprovada no Om; fontes Java em UTF-8 quebram acentos
 - **Uncommitted files**: listagem TSIANX anterior, `build.gradle` e esta spec, se ainda não commitados
 - **Branch**: `main`

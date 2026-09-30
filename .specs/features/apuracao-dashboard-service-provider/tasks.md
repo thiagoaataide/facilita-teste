@@ -4,8 +4,8 @@
 
 Executar com a skill `tlc-spec-driven`: ler `STATE.md`, `spec.md` e
 `design.md`, realizar uma tarefa atômica por vez, atualizar este arquivo e
-registrar a evidência em `memory.md`. Nenhum `deployAddon` é permitido sem
-autorização explícita.
+registrar a evidência em `memory.md`. Não executar `gerarAddon` nem
+`deployAddon`: quem gera e instala o pacote é o desenvolvedor.
 
 **Design:** `design.md`  
 **Status:** In Progress — baseline funcional do legado reconciliado em spec,

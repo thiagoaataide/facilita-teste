@@ -3,7 +3,7 @@
 **Spec**: `.specs/features/tela-apuracao-addon/spec.md`
 **Status**: Approved
 
-Cobre F1–F3 (TELA-01 a TELA-08, TELA-15), aprovado e entregue. A F4 está na seção [F4 — Confirmar e nova auditoria](#f4--confirmar-e-nova-auditoria), em rascunho. F5 e F6 não entram neste desenho.
+Cobre F1–F3 (TELA-01 a TELA-08, TELA-15), aprovado e entregue. A F4 está na seção [F4 — Confirmar e nova auditoria](#f4--confirmar-e-nova-auditoria). F7 e F8 estão na seção [F7 e F8 — Ver arquivo e anexar](#f7-e-f8--ver-arquivo-e-anexar). F5 e abrir tarefa não entram neste desenho.
 
 ## Architecture Overview
 
@@ -256,3 +256,103 @@ UPDATE BH_FACAPU
 ### Invariante de schema
 
 Nenhum DDL. `UPDATE` só nas colunas que o legado já grava em `BH_FACAPU`. `TSIUSU` é só lida. As entidades novas são parciais e nativas (`isNativeTable = true`); `autoDDL` continua `false`.
+
+---
+
+# F7 e F8 — Ver arquivo e anexar
+
+**Spec**: TELA-16 e TELA-17
+**Status**: Draft
+**Decisão de projeto**: AD-009
+
+A lateral direita da tela do menu concentra detalhe, confirmar, nova auditoria, a lista de anexos, Ver e Enviar. A grade fica à esquerda. A lista é o seletor: Ver abre o item escolhido. Cada envio grava um arquivo; outro envio grava outro.
+
+```mermaid
+graph TD
+    Lateral[Lateral direita] -->|arquivo escolhido| Abrir[abrirAnexo]
+    Lateral -->|um arquivo e um tipo| Upload[sessionUpload.mge]
+    Upload --> Salvar[AnexoSistemaSP.salvar]
+    Salvar --> Concluir[concluirAnexo]
+    Abrir --> Tsianx[TSIANX da apuracao]
+    Concluir --> Tsianx
+    Concluir --> Facapu[BH_FACAPU.POSSUIANEXO]
+```
+
+Abordagem escolhida: a associação do arquivo usa o serviço oficial já documentado, `AnexoSistemaSP.salvar`, chamado pela tela com `ServiceProxy`, como a tela antiga. A regra da Facilita (nome composto e `POSSUIANEXO`) fica em `concluirAnexo`, no add-on. Ver arquivo só devolve URL depois de conferir que o `NUATTACH` pertence à apuração. A URL em si continua pendente de evidência no Om: o botão antigo abre o mais recente por `visualizadorArquivos.facilita?nuApuracao=`, e isso não escolhe o item da lista.
+
+## Code Reuse
+
+| Componente | Onde | Uso |
+| --- | --- | --- |
+| `listarAnexos` | `BlockedAnexoGateway` | A lista da lateral continua com identificador e nome |
+| `AnexarBusiness` | validação de tipo `FO`, `2V`, `FA`, `BO`, `NF`, `RE` e da chave `ANEXO_SISTEMA_bhApuracao_{nu}` | A tela usa a mesma chave no upload |
+| `AnexoSistemaSP.salvar` | documentação oficial `developer.sankhya.com.br/reference/get_anexaarquivos` | Associação em `TSIANX`. Parâmetros iguais aos de `Apuracao.js` `createANX`: `pkEntity`, `keySession`, `nameEntity=bhApuracao`, `typeAcess=ALL`, `typeApres=GLO`, `fileSelect=1` |
+| `atualizaTipoAnexo` | `AnexosModel.java` | Fórmula do nome, não a chamada do serviço legado |
+| `FailClosedAuthorizationPort` | sessão | `ATTACH` passa a valer para o usuário da sessão. `VIEW_TASK` continua fechado |
+
+## Componentes
+
+### Lateral
+
+- **Purpose**: Detalhe, ações e anexos à direita.
+- **Location**: `vc/src/main/webapp/html5/ApuracaoTrabalho/`
+- **Interfaces**: clique num item da lista seleciona; Ver fica desabilitado sem seleção ou sem anexo; Enviar fica desabilitado sem arquivo ou sem tipo.
+- **Reuses**: `chamar`, `mostrarErro`
+
+### abrirAnexo
+
+- **Purpose**: Autorizar a abertura do item escolhido.
+- **Location**: `ApuracaoDashboardController.abrirAnexo`, business novo
+- **Interfaces**: entrada `nuApuracao` e `nuAttach`. Se a linha não existir nessa chave `{nu}_bhApuracao`, `VALIDATION`. Se `CHAVEARQUIVO` estiver vazio, `INTEGRATION`. A URL só entra depois da evidência no Om.
+- **Reuses**: `LIST_ATTACHMENTS`, já aberto para a sessão
+
+### concluirAnexo
+
+- **Purpose**: Aplicar o nome do legado e marcar `POSSUIANEXO` depois da associação.
+- **Location**: business novo, chamado pela tela após `AnexoSistemaSP.salvar` devolver o `nuAttach`
+- **Interfaces**: entrada `nuApuracao`, `nuAttach`, `tipo`. Grava `BH_TIPO`, `NOMEARQUIVO` e `DESCRICAO` na linha que já pertence à apuração. Em seguida `POSSUIANEXO = S` pela entidade `bhApuracao`.
+- **Fórmula**, igual a `AnexosModel.atualizarTipoAnexo`: `{IDENTIFICADOR}_{ano}_{mês}_{CGC_CPF}_{tipo}{extensão}`. O mês é o mês civil sem zero à esquerda (`9`, não `09`). A extensão é o trecho do nome original a partir do primeiro `.`. `DESCRICAO` é `NOMEPARC` da operadora. `IDENTIFICADOR` vem de `BH_FACCON`. `CGC_CPF` vem do parceiro de `BH_FACCON.TITULARIDADE`. `NOMEPARC` vem do parceiro de `BH_FACCON.OPERADORA`.
+- **Antes do upload**: se não houver vencimento, parceiro ou ponto no nome do arquivo, a fachada responde `VALIDATION` e a tela não chama `AnexoSistemaSP.salvar`.
+- **Reuses**: `repository.save` da apuração, para o `ApuracaoListener` do legado continuar vendo a gravação
+
+### Leitura do nome
+
+```sql
+SELECT CON.IDENTIFICADOR, OPE.NOMEPARC, TIT.CGC_CPF, APU.DTVENC
+  FROM BH_FACAPU APU
+  JOIN BH_FACCON CON ON CON.CODCONTA = APU.CODCONTA
+  LEFT JOIN TGFPAR OPE ON OPE.CODPARC = CON.OPERADORA
+  LEFT JOIN TGFPAR TIT ON TIT.CODPARC = CON.TITULARIDADE
+ WHERE APU.NUAPURACAO = :nuApuracao
+```
+
+`TGFPAR` é a tabela de parceiro do Sankhya. O UAT confere o nome gerado com um envio novo; um arquivo antigo pode ter sido renomeado à mão.
+
+## Erros
+
+| Cenário | Código | O usuário vê |
+| --- | --- | --- |
+| Ver sem item escolhido | a tela não chama | Botão desabilitado |
+| `nuAttach` de outra apuração | `VALIDATION` | Mensagem segura e `correlationId` |
+| Sem vencimento, sem parceiro ou sem ponto no nome | `VALIDATION` | Nada é associado |
+| `AnexoSistemaSP.salvar` ou a troca do nome falha | `INTEGRATION` | `code`, `message`, `correlationId`. Se a linha já nasceu em `TSIANX`, a pessoa apaga no Om |
+| Tipo fora da lista | `VALIDATION` | Nada é associado |
+
+## Riscos
+
+| Concern | Onde | Impacto | Mitigação |
+| --- | --- | --- | --- |
+| A URL que abre um `NUATTACH` escolhido não está no fonte | `Apuracao.js` abre só `?nuApuracao=`, e isso pega o mais recente | Ver o item errado | Tarefa de evidência no Om antes de ligar o botão. Sem URL comprovada, Ver não abre janela |
+| `salvar` pode gravar e `concluirAnexo` falhar | ordem tela → serviço oficial → add-on | Anexo com o nome original, sem a composição | A validação de vencimento, parceiro e extensão ocorre antes do upload. O que sobrar, a pessoa exclui no Om |
+| `putFileSession` do legado não coloca o arquivo na sessão | `AnexosModel.java` linha do `putHttpSessionAttribute` comentada | Copiar esse método não abre o PDF | Não reutilizar `putFileSession` |
+| Join `TGFPAR` ainda não foi lido no Om desta tela | SQL acima | Nome composto errado | O teste de unidade cobre a fórmula com valores fixos. O UAT compara um arquivo recém-enviado |
+| CPF/CNPJ no nome | `NOMEARQUIVO` | Dado pessoal no anexo, como o cliente já vê hoje | AD-009. A tela não inventa outro formato |
+
+## Decisões desta seção
+
+| Decisão | Escolha | Por quê |
+| --- | --- | --- |
+| Quem associa o arquivo | A tela chama `AnexoSistemaSP.salvar` | Serviço oficial documentado; a tela antiga já faz isso na sessão |
+| Quem compõe o nome | `concluirAnexo` no add-on | A regra é da Facilita, não do `AnexoSistemaSP` |
+| `POSSUIANEXO` | Só depois da troca do nome | Evita o indicador mentiroso do legado, que marca `S` antes |
+| Ver | URL só com evidência, e só para `NUATTACH` da apuração | Não chutar parâmetro de servlet |

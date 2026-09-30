@@ -541,3 +541,305 @@ T11 → T12
 | T10 | Repository/store | unit | unit | ✅ OK |
 | T11 | Autorização | unit | unit | ✅ OK |
 | T12 | HTML5 do add-on | none | none | ✅ OK |
+
+---
+
+# F7 e F8 — Tasks
+
+**Design**: seção F7 e F8 de `.specs/features/tela-apuracao-addon/design.md`
+**Status**: In Progress
+**Requisitos**: TELA-16, TELA-17
+
+O gate e a matriz de F1–F4 continuam valendo. Esta lista acrescenta a linha do nome composto e de `abrirAnexo`.
+
+## Test Coverage Matrix
+
+> Guidelines: `AGENTS.md`, `.cursorrules` seção 8, `model/build.gradle` (`useJUnitPlatform`). HTML5 segue evidência no Om, como T3–T6 e T12.
+
+| Code Layer | Required Test Type | Coverage Expectation | Location Pattern | Run Command |
+| --- | --- | --- | --- | --- |
+| Fórmula do nome e `abrirAnexo` / `concluirAnexo` | unit | Fórmula do legado, tipo inválido, anexo de outra apuração, sem vencimento ou sem parceiro não grava | `model/src/test/java/br/com/facilita/apuracao/**/*Test.java` | `$env:JAVA_HOME = "C:\Program Files\Java\jdk-21.0.12"; .\gradlew.bat :model:test` |
+| HTML5 do add-on | none | Evidência no Om depois do pacote | `vc/src/main/webapp/html5/ApuracaoTrabalho/` | o mesmo comando, mais `node --check` no JavaScript |
+
+## Parallelism Assessment
+
+| Test Type | Parallel-Safe? | Isolation Model | Evidence |
+| --- | --- | --- | --- |
+| unit | Yes | Fakes locais, sem banco | testes atuais instanciam fakes em `@BeforeEach` |
+| none | Yes | Sem teste compartilhado | HTML não roda suíte |
+
+## Gate Check Commands
+
+| Gate Level | When to Use | Command |
+| --- | --- | --- |
+| Quick | Tarefa com teste de unidade | `$env:JAVA_HOME = "C:\Program Files\Java\jdk-21.0.12"; .\gradlew.bat :model:test` |
+| Build | Tarefa só de HTML | o mesmo comando; a suíte existente não perde teste. `node --check` no JavaScript tocado |
+
+## Execution Plan
+
+### Phase 1
+
+```
+T13
+T15
+```
+
+### Phase 2
+
+```
+T13 → T14
+T15 → T16
+```
+
+### Phase 3
+
+```
+T16 → T17
+```
+
+### Phase 4
+
+```
+T14 → T18
+T17 → T18
+```
+
+### Phase 5
+
+```
+T14 → T19
+```
+
+T19 espera a evidência da URL no Om. Não bloqueia o envio.
+
+---
+
+## Task Breakdown
+
+### T13: Lateral direita [P]
+
+**What**: A grade fica à esquerda. Detalhe, confirmar, nova auditoria, lista de anexos, Ver e Enviar ficam na lateral direita. Ver e Enviar nascem desabilitados.
+**Where**: `vc/src/main/webapp/html5/ApuracaoTrabalho/ApuracaoTrabalho.html`, `ApuracaoTrabalho.css`
+**Depends on**: None
+**Reuses**: o detalhe e a lista que já existem
+**Requirement**: TELA-16, TELA-17
+
+**Tools**:
+
+- MCP: NONE
+- Skill: NONE
+
+**Done when**:
+
+- [x] Detalhe, os dois botões de apuração, a lista, Ver e Enviar estão na lateral
+- [x] Ver está desabilitado sem item escolhido
+- [x] Enviar está desabilitado sem arquivo ou sem tipo
+- [x] Gate: `.\gradlew.bat :model:test` com JDK 21 continua passando
+
+**Tests**: none
+**Gate**: build
+
+**Commit**: `feat(tela): coloca detalhe e anexos na lateral direita`
+
+---
+
+### T14: Escolher um anexo na lista
+
+**What**: Clicar num item da lista marca a escolha. Ver só habilita com um item escolhido.
+**Where**: `ApuracaoTrabalho.js`, `ApuracaoTrabalho.html`
+**Depends on**: T13
+**Reuses**: `listarAnexos` já chamado ao selecionar a apuração
+**Requirement**: TELA-16
+
+**Tools**:
+
+- MCP: NONE
+- Skill: NONE
+
+**Done when**:
+
+- [x] Sem clique na lista, Ver permanece desabilitado e `abrirAnexo` não é chamado
+- [x] O item escolhido guarda `identifier` da linha
+- [x] `node --check` passa
+- [x] Gate: `.\gradlew.bat :model:test` com JDK 21 continua passando
+
+**Tests**: none
+**Gate**: build
+
+**Commit**: `feat(tela): escolhe o anexo da lista antes de abrir`
+
+---
+
+### T15: Fórmula do nome do legado [P]
+
+**What**: Função pura que monta `NOMEARQUIVO` como `AnexosModel.atualizarTipoAnexo`: identificador, ano, mês sem zero, CPF/CNPJ, tipo e o trecho do nome original a partir do primeiro ponto.
+**Where**: classe nova ao lado de `AnexoSistemaListMapper`
+**Depends on**: None
+**Reuses**: a fórmula de `AnexosModel.java`
+**Requirement**: TELA-17, AD-009
+
+**Tools**:
+
+- MCP: NONE
+- Skill: `test`
+
+**Done when**:
+
+- [x] `LINK 20 MB`, vencimento `2026-09-10`, CPF/CNPJ `07196307000159`, tipo `FO` e arquivo `fatura.pdf` produzem `LINK 20 MB_2026_9_07196307000159_FO.pdf`
+- [x] Nome sem ponto não produz composição
+- [x] Gate: `.\gradlew.bat :model:test` com JDK 21
+
+**Tests**: unit
+**Gate**: quick
+
+**Commit**: `feat(anexo): compoe o nome do arquivo como no legado`
+
+---
+
+### T16: Ler os dados da composição
+
+**What**: Consulta allowlisted de identificador da conta, nome do parceiro operadora, CPF/CNPJ do titular e vencimento da apuração.
+**Where**: repositório de leitura já usado pela apuração, mais uma linha de resultado em arquivo próprio
+**Depends on**: T15
+**Reuses**: `@NativeQuery` com `@Parameter(name = "...")`
+**Requirement**: TELA-17
+
+**Tools**:
+
+- MCP: NONE
+- Skill: `repository`, `test`
+
+**Done when**:
+
+- [x] A query não usa `SELECT *` e junta `BH_FACAPU`, `BH_FACCON` e `TGFPAR` como no desenho
+- [x] Uma linha fictícia vira identificador, nome, documento e vencimento
+- [x] Linha ausente vira ausência, não `INTEGRATION`
+- [x] Gate: `.\gradlew.bat :model:test` com JDK 21
+
+**Tests**: unit
+**Gate**: quick
+
+**Commit**: `feat(anexo): le conta, parceiro e vencimento para o nome`
+
+---
+
+### T17: Concluir o anexo
+
+**What**: `concluirAnexo` confere que o `NUATTACH` é da apuração, grava `BH_TIPO`, `NOMEARQUIVO` e `DESCRICAO`, e só então marca `POSSUIANEXO = S`. Sem vencimento, sem parceiro ou sem ponto no nome: `VALIDATION`, sem gravar. `ATTACH` passa para o usuário da sessão. `VIEW_TASK` continua `FORBIDDEN`.
+**Where**: `ApuracaoDashboardController`, business novo, `FailClosedAuthorizationPort`, entidade `AnexoSistema`
+**Depends on**: T16
+**Reuses**: `AnexarBusiness` na lista de tipos; `repository.save` da apuração
+**Requirement**: TELA-17
+
+**Tools**:
+
+- MCP: NONE
+- Skill: `repository`, `test`
+
+**Done when**:
+
+- [x] Anexo da apuração certa grava o nome da fórmula e `BH_TIPO`, e a apuração fica com `POSSUIANEXO = S`
+- [x] `NUATTACH` de outra apuração: `VALIDATION`, sem gravar
+- [x] Sem vencimento ou sem nome de parceiro: `VALIDATION`, sem gravar
+- [x] `ATTACH` não lança para usuário da sessão; `VIEW_TASK` continua `FORBIDDEN`
+- [x] Gate: `.\gradlew.bat :model:test` com JDK 21
+
+**Tests**: unit
+**Gate**: quick
+
+**Commit**: `feat(anexo): grava tipo, nome composto e possui anexo`
+
+---
+
+### T18: Enviar um arquivo
+
+**What**: Na lateral, um arquivo e um tipo. A tela consulta a preparação, faz o upload com a chave `ANEXO_SISTEMA_bhApuracao_{nu}`, chama `AnexoSistemaSP.salvar` e em seguida `concluirAnexo`. Outro envio repete o ciclo. Erro mostra `code`, `message` e `correlationId`.
+**Where**: `ApuracaoTrabalho.js`, `ApuracaoTrabalho.html`
+**Depends on**: T14, T17
+**Reuses**: `chamar`, `mostrarErro`, documentação de `sessionUpload.mge` e `AnexoSistemaSP.salvar`
+**Requirement**: TELA-17
+
+**Tools**:
+
+- MCP: NONE
+- Skill: NONE
+
+**Done when**:
+
+- [x] O combo envia `FO`, `2V`, `FA`, `BO`, `NF` ou `RE`, não o rótulo
+- [x] Sem arquivo ou sem tipo, Enviar não chama serviço
+- [x] A chave de sessão é `ANEXO_SISTEMA_bhApuracao_` mais o `NUAPURACAO` da linha
+- [x] `concluirAnexo` recebe o `nuAttach` devolvido por `AnexoSistemaSP.salvar`
+- [x] `node --check` passa
+- [x] Gate: `.\gradlew.bat :model:test` com JDK 21 continua passando
+
+**Tests**: none
+**Gate**: build
+
+**Commit**: `feat(tela): envia um anexo e conclui o nome no legado`
+
+---
+
+### T19: Abrir o arquivo escolhido
+
+**What**: Provar no Om a URL que abre um `NUATTACH` específico a partir da tela do add-on. Só então `abrirAnexo` devolve essa URL e Ver abre a janela. Sem evidência, Ver não abre nada.
+**Where**: `.specs/features/apuracao-dashboard-service-provider/evidencias/`, business `abrirAnexo`, `ApuracaoTrabalho.js`
+**Depends on**: T14
+**Reuses**: a conferência de que o `NUATTACH` pertence à chave `{nu}_bhApuracao`
+**Requirement**: TELA-16
+
+**Tools**:
+
+- MCP: NONE até a evidência; o teste no Om é manual
+- Skill: NONE
+
+**Done when**:
+
+- [ ] A evidência registra a URL que abriu o arquivo escolhido, não o mais recente
+- [x] `NUATTACH` de outra apuração: `VALIDATION`, sem URL
+- [x] `CHAVEARQUIVO` vazio: `INTEGRATION`
+- [x] Ver chama `abrirAnexo` com o identificador escolhido e abre a janela só quando a resposta traz `url`
+- [x] Gate: `.\gradlew.bat :model:test` com JDK 21
+
+**Tests**: unit
+**Gate**: quick
+
+**Commit**: `feat(anexo): abre o arquivo escolhido na lista`
+
+---
+
+## Task Granularity Check
+
+| Task | Scope | Status |
+| --- | --- | --- |
+| T13: Lateral | 1 tela | ✅ Granular |
+| T14: Seleção | 1 função | ✅ Granular |
+| T15: Fórmula | 1 função + teste | ✅ Granular |
+| T16: Leitura | 1 consulta + teste | ✅ Granular |
+| T17: Concluir | 1 caso de uso + autorização | ⚠️ coeso, dois efeitos no mesmo save |
+| T18: Enviar | 1 fluxo da tela | ✅ Granular |
+| T19: Abrir | evidência + 1 método + botão | ⚠️ a evidência trava o método |
+
+## Diagram-Definition Cross-Check
+
+| Task | Depends On (task body) | Diagram Shows | Status |
+| --- | --- | --- | --- |
+| T13 | None | Phase 1, sem entrada | ✅ Match |
+| T14 | T13 | T13 → T14 | ✅ Match |
+| T15 | None | Phase 1, sem entrada | ✅ Match |
+| T16 | T15 | T15 → T16 | ✅ Match |
+| T17 | T16 | T16 → T17 | ✅ Match |
+| T18 | T14, T17 | T14 → T18 e T17 → T18 | ✅ Match |
+| T19 | T14 | T14 → T19 | ✅ Match |
+
+## Test Co-location Validation
+
+| Task | Code Layer | Matrix Requires | Task Says | Status |
+| --- | --- | --- | --- | --- |
+| T13 | HTML5 | none | none | ✅ OK |
+| T14 | HTML5 | none | none | ✅ OK |
+| T15 | Fórmula | unit | unit | ✅ OK |
+| T16 | Fórmula / leitura | unit | unit | ✅ OK |
+| T17 | concluirAnexo | unit | unit | ✅ OK |
+| T18 | HTML5 | none | none | ✅ OK |
+| T19 | abrirAnexo | unit | unit | ✅ OK |

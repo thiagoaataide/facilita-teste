@@ -1,0 +1,13 @@
+---
+description: O desenvolvedor gera e instala o pacote do add-on; o agente não roda gerarAddon nem deployAddon
+alwaysApply: true
+---
+
+# Pacote do add-on
+
+Quem gera e instala o pacote na Facilita é o desenvolvedor.
+
+- Não executar `gerarAddon`, `deployAddon` nem copiar o `.exts` para o WildFly, mesmo se o pedido for "build e subir" ou "gerar o addon".
+- Pode rodar a suíte (`.\gradlew.bat :model:test` com JDK 21) quando o gate da tarefa exigir.
+- Ao final da implementação, commitar e dar push. O desenvolvedor autorizou isso.
+- Ao terminar uma mudança que precisa ir ao Om, diga a versão em `build.gradle`. A instalação e o UAT ficam com o desenvolvedor.

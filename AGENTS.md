@@ -176,8 +176,9 @@ seguir:
    sem critério binário de conclusão.
 4. Atualizar riscos, decisões e contrato quando uma evidência do Om mudar uma
    premissa.
-5. Não fazer deploy nem publicar no cliente sem autorização explícita e sem o
-   smoke test de instalação sem DDL descrito na spec.
+5. Não executar `gerarAddon` nem `deployAddon`. Quem gera e instala o pacote
+   é o desenvolvedor, depois do smoke test de instalação sem DDL descrito na
+   spec.
 
 ## Identidade e publicação
 
@@ -195,6 +196,5 @@ alinhados com o cadastro da solução.
 
 Segredos, credenciais e `WILDFLY_HOME` ficam fora do controle de versão. O
 `appKey` é o identificador da solução Add-on e deve permanecer alinhado ao
-cadastro do Portal; ele não substitui tokens ou credenciais. O comando de
-deploy só pode ser executado depois da aprovação do usuário e da homologação
-manual.
+cadastro do Portal; ele não substitui tokens ou credenciais. `gerarAddon` e
+`deployAddon` ficam com o desenvolvedor, depois da homologação manual.

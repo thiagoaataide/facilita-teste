@@ -16,18 +16,20 @@ O gadget de BI não alcança o `ApuracaoDashboardSP`: o broker de `/mge/service.
 | --- | --- | --- | --- |
 | F1 Casca | Página no add-on com grade, detalhe e botões; menu no lugar de **Chamada da fachada** | AD-007 | Done |
 | F2 Grade e detalhe | `listar` e `listarDetalhe` para o usuário da sessão | F1 | Done |
-| F3 Ver anexo | `listarAnexos` na linha selecionada, nome e identificador | F1; fachada já comprovada | Done |
-| F4 Confirmar e nova auditoria | `confirmar` e `solicitarNovaAuditoria` com a regra do legado | F2 | Pending |
+| F3 Listar anexo | `listarAnexos` na linha selecionada, nome e identificador | F1; fachada já comprovada | Done |
+| F4 Confirmar e nova auditoria | `confirmar` e `solicitarNovaAuditoria` com a regra do legado | F2 | Implemented (UAT com o cliente) |
 | F5 Valor e vencimento | `atualizar` com a versão já exigida pela fachada | F2 | Pending |
-| F6 Arquivo e tarefa | `anexar` e `getTarefa` | contrato homologado; fora das entregas F1–F5 | Pending |
+| F7 Ver arquivo | Abrir o anexo escolhido na lista da lateral | F3 | Desenhado (T13, T14, T19) |
+| F8 Anexar | Enviar um arquivo e um tipo, nome igual ao legado | F3; AD-009 | Desenhado (T13, T15–T18) |
+| F6 Abrir tarefa | `getTarefa` e a tela nativa de workflow | contrato de workflow | Pending |
 
 ## Out of Scope
 
 | Item | Motivo |
 | --- | --- |
-| Abrir ou baixar o PDF | A listagem comprovada devolve identificador e nome, não o arquivo |
-| Enviar anexo e abrir tarefa (F6) | Upload e workflow ainda não têm contrato homologado na sessão do add-on |
-| Substituir o gadget de BI agora | Ele permanece consulta até a tela do add-on cobrir o mesmo uso |
+| Excluir anexo nesta tela | Quem testa apaga a linha no Om depois; a tela não ganha botão de exclusão |
+| Abrir tarefa (F6) | Workflow continua sem contrato homologado |
+| Substituir o gadget de BI agora | Os botões entram na tela do menu. O gadget permanece consulta |
 | Criar ou alterar DDL | Invariante do projeto: nenhum `CREATE`, `ALTER` ou `dbscript`. `BH_FACAPU`, `TSIANX` e `TWFITAR` já existem no legado. `autoDDL` permanece `false`. O menu `FACAPU` só registra a tela |
 | Chamar a fachada por `/mge/service.sbr` | Esse broker não encontra o provedor |
 
@@ -42,9 +44,15 @@ O gadget de BI não alcança o `ApuracaoDashboardSP`: o broker de `/mge/service.
 | Leitura (grade, detalhe, anexo) | Usuário da sessão basta | Igual ao legado para listar anexo; grade e detalhe seguem o mesmo critério | y |
 | Nova auditoria | Só se `BH_NOVAAUDIT = 'S'` no usuário da sessão e a apuração estiver confirmada | Única permissão extra do legado | y |
 | Confirmar | Apuração aberta e com valor | `ApuracaoModel.confirmarApuracao` | y |
-| Ordem das entregas | F1, F2, F3, depois F4 e F5; F6 fica de fora | Acordo de 2026-09-29 | y |
+| Ordem das entregas | F1–F4 no código. A spec seguinte é F7 e F8. F5 e abrir tarefa ficam depois | A F4 permanece na tela; o UAT dela é com o cliente | y |
 | Tela de prova | **Chamada da fachada** sai do menu quando F1 publicar a tela nova | Evita dois pontos de entrada | y |
 | Filtro inicial da grade | Mês corrente e somente pendentes, como o gadget | O gadget já opera assim; a fachada ainda não lista | y |
+| Onde ficam Ver arquivo e Anexar | Na lateral direita da tela do menu, com detalhe, confirmar, nova auditoria e a lista de nomes | Pedido de 2026-09-30. O gadget só descreve as ações | y |
+| Qual arquivo o Ver abre | O item escolhido na lista da lateral. Sem escolha, Ver fica desabilitado | A lista já devolve identificador e nome; ela vira o seletor | y |
+| Quantos arquivos por envio | Um por operação. Outro envio cria outro anexo na mesma apuração | O legado também guarda mais de um, cada um numa associação | y |
+| O que o Anexar grava | Um arquivo, `BH_TIPO` em `FO`, `2V`, `FA`, `BO`, `NF` ou `RE`, chave `{NUAPURACAO}_bhApuracao`. `POSSUIANEXO` só vira `S` depois da associação e da troca do nome | O legado marca `POSSUIANEXO` antes e pode deixar o indicador mentindo. O desenho de F8 inverte essa ordem | y |
+| Nome gravado em `TSIANX` | Igual ao legado: `NOMEARQUIVO` = `{IDENTIFICADOR}_{ano}_{mês}_{CGC_CPF}_{tipo}{extensão}` e `DESCRICAO` = nome do parceiro | Pedido de 2026-09-30 para não divergir do que o cliente já vê | y |
+| Limpeza do teste | A exclusão é manual no Om, fora desta tela | O teste em produção precisa ser reversível sem um método novo | y |
 
 **Open questions:** nenhuma fora da tabela. Os itens com Confirmed `n` seguem o default até revisão explícita.
 
@@ -94,17 +102,36 @@ Dimensões fora do escopo desta tela: expiração de dado, limite de taxa e paga
 
 ---
 
-### P3: Enviar arquivo e abrir tarefa
+### P3: Ver o arquivo e anexar
 
-**User Story**: Como usuário logado, quero anexar um arquivo e abrir a tarefa da apuração quando o contrato dessas operações existir no Om.
+**User Story**: Como usuário logado, quero abrir o anexo da apuração e enviar um arquivo de teste, para conferir o arquivo de verdade e apagar essa linha depois no Om.
 
-**Why P3**: Não há serviço de upload nem de workflow homologado na sessão do add-on. A tela não deve simular isso.
+**Why P3**: A lista de nomes já funciona. Falta mostrar o conteúdo e gravar um anexo novo. Abrir tarefa continua fora.
 
 **Acceptance Criteria**:
 
-1. WHEN o usuário aciona enviar arquivo ou abrir tarefa antes do contrato THEN a fachada SHALL responder `INTEGRATION` e SHALL não gravar `TSIANX` nem `TWFITAR`.
+1. WHEN a linha tem anexos e o usuário escolhe um item da lista na lateral direita e pede para ver THEN a tela SHALL abrir esse arquivo e o usuário SHALL ver o conteúdo.
+2. WHEN não há anexo, ou nenhum item da lista está escolhido THEN o controle de ver SHALL ficar desabilitado e a fachada SHALL não ser chamada.
+3. WHEN o usuário envia um arquivo e um tipo `FO`, `2V`, `FA`, `BO`, `NF` ou `RE` THEN `anexar` SHALL gravar esse único anexo em `TSIANX` nessa chave, com `BH_TIPO` igual ao código, `NOMEARQUIVO` no formato `{IDENTIFICADOR}_{ano do vencimento}_{mês do vencimento}_{CGC_CPF}_{tipo}{extensão}` e `DESCRICAO` igual ao nome do parceiro. A lista da lateral SHALL mostrar o identificador e esse nome. Outro envio SHALL criar outro anexo.
+4. WHEN a associação conclui THEN `POSSUIANEXO` SHALL ficar `S`. WHEN a associação falha THEN `POSSUIANEXO` SHALL permanecer como estava e a tela SHALL mostrar `code`, `message` e `correlationId`.
+5. WHEN o tipo está vazio ou fora desses seis códigos, ou não há arquivo THEN a fachada SHALL responder `VALIDATION` e SHALL não gravar `TSIANX`.
+6. WHEN o usuário da sessão pede ver ou anexar THEN a fachada SHALL responder sem `FORBIDDEN`.
 
-**Independent Test**: Os botões, se visíveis, mostram o envelope `INTEGRATION` e as tabelas permanecem iguais.
+**Independent Test**: Numa apuração com mais de um anexo, escolher um na lista da lateral e abrir esse arquivo. Enviar um arquivo pequeno com tipo `FO`, ver na lista o nome no formato do legado (`identificador_ano_mês_CPF ou CNPJ_FO.extensão`), abrir esse arquivo e apagar a linha no Om. Um segundo envio cria outra linha.
+
+---
+
+### P3: Abrir tarefa
+
+**User Story**: Como usuário logado, quero abrir a tarefa pendente do fluxo quando esse contrato existir no Om.
+
+**Why P3**: `getTarefa` continua fechado. A tela não deve abrir o workflow enquanto isso.
+
+**Acceptance Criteria**:
+
+1. WHEN o usuário aciona abrir tarefa antes do contrato THEN a fachada SHALL responder `INTEGRATION` e SHALL não gravar `TWFITAR`.
+
+**Independent Test**: A chamada, se existir, devolve `INTEGRATION` e `TWFITAR` permanece igual.
 
 ---
 
@@ -116,6 +143,9 @@ Dimensões fora do escopo desta tela: expiração de dado, limite de taxa e paga
 - WHEN `confirmar` recebe uma apuração sem valor THEN a fachada SHALL responder `VALIDATION` e SHALL não gravar.
 - WHEN `confirmar` recebe uma apuração já confirmada ou com auditoria finalizada THEN a fachada SHALL responder `CONFLICT` e SHALL não gravar. Confirmar não reabre a apuração; isso é só `solicitarNovaAuditoria`.
 - WHEN a versão enviada em `confirmar` ou `solicitarNovaAuditoria` não é a vigente THEN a fachada SHALL responder `CONFLICT` e SHALL não gravar.
+- WHEN `anexar` é disparado de novo, com outra chave de idempotência THEN a fachada SHALL criar outro anexo. O legado também guarda mais de um arquivo na mesma apuração.
+- WHEN a apuração não tem vencimento, ou a conta não tem parceiro THEN `anexar` SHALL falhar como o legado (`atualizaTipoAnexo`) e SHALL não concluir a troca do nome.
+- WHEN a abertura do arquivo falha THEN a tela SHALL mostrar `code`, `message` e `correlationId`, e SHALL não indicar sucesso.
 
 ---
 
@@ -137,9 +167,11 @@ Dimensões fora do escopo desta tela: expiração de dado, limite de taxa e paga
 | TELA-11 | P2: nova auditoria recusada | F4 | Implemented (UAT pendente) |
 | TELA-12 | P2: atualizar com versão vigente | F5 | Pending |
 | TELA-13 | P2: conflito de versão | F5 | Pending |
-| TELA-14 | P3: arquivo e tarefa bloqueados | F6 | Pending |
+| TELA-14 | P3: abrir tarefa bloqueada | F6 | Pending |
+| TELA-16 | P3: abrir o arquivo escolhido na lista | F7 | In Tasks |
+| TELA-17 | P3: anexar um arquivo e um tipo | F8 | In Tasks |
 
-**Coverage:** 14 requisitos. TELA-01 a TELA-08 mapeados em `tasks.md`. TELA-09 a TELA-14 ficam para F4–F6.
+**Coverage:** 16 requisitos. TELA-01 a TELA-08 e TELA-15 mapeados em `tasks.md`. TELA-09 a TELA-11 implementados, UAT com o cliente. TELA-12, TELA-13, TELA-14, TELA-16 e TELA-17 sem tarefa ainda.
 
 ---
 
@@ -147,4 +179,5 @@ Dimensões fora do escopo desta tela: expiração de dado, limite de taxa e paga
 
 - [x] No Om, a grade do mês abre pelo menu do add-on e a linha selecionada mostra o anexo de `TSIANX` (evidência em `validation.md`).
 - [ ] Confirmar, nova auditoria e alterar valor/vencimento só ocorrem pelos métodos da fachada, com a regra do legado.
-- [ ] Enviar arquivo e abrir tarefa não gravam nada enquanto F6 estiver pendente.
+- [ ] Na lateral direita, ver abre o anexo escolhido na lista, e cada envio grava um arquivo que aparece nessa lista e pode ser apagado no Om.
+- [ ] Abrir tarefa não grava `TWFITAR` enquanto F6 estiver pendente.

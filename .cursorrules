@@ -181,7 +181,8 @@ altera nem gera DDL delas.
 - Alteração de payload/prefixo do gadget é no repo HTML5, alinhada ao
   contrato; este repo não publica o JSP.
 
-Deploy (`deployAddon`) só com autorização explícita do usuário.
+O desenvolvedor gera e instala o pacote. Não executar `gerarAddon` nem
+`deployAddon`.
 
 ---
 
