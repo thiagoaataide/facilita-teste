@@ -8,12 +8,12 @@ import br.com.facilita.apuracao.api.ListarAnexosResponse;
 import br.com.facilita.apuracao.model.AnexoSistema;
 
 /** Monta a lista publica a partir da chave legada da apuracao. */
-final class AnexoSistemaListMapper {
+public final class AnexoSistemaListMapper {
 
     private AnexoSistemaListMapper() {
     }
 
-    static String chave(Integer nuApuracao) {
+    public static String chave(Integer nuApuracao) {
         return nuApuracao.toString() + "_bhApuracao";
     }
 

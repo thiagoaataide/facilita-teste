@@ -69,9 +69,13 @@ class FailClosedAuthorizationPortTest {
     }
 
     @Test
+    void permiteAnexarParaOUsuarioDaSessao() {
+        port.requireAllowed(AuthorizationAction.ATTACH, new AuthorizationContext("10"), null);
+    }
+
+    @Test
     void mantemAsDemaisAcoesFechadas() {
         assertForbidden(port, AuthorizationAction.UPDATE);
-        assertForbidden(port, AuthorizationAction.ATTACH);
         assertForbidden(port, AuthorizationAction.VIEW_TASK);
     }
 

@@ -4,11 +4,13 @@ import javax.validation.Valid;
 
 import com.google.inject.Inject;
 
+import br.com.facilita.apuracao.api.AbrirAnexoRequest;
 import br.com.facilita.apuracao.api.AnexarRequest;
 import br.com.facilita.apuracao.api.AnexoResponse;
 import br.com.facilita.apuracao.api.ApiResponse;
 import br.com.facilita.apuracao.api.ApuracaoResponse;
 import br.com.facilita.apuracao.api.AtualizarApuracaoRequest;
+import br.com.facilita.apuracao.api.ConcluirAnexoRequest;
 import br.com.facilita.apuracao.api.ConfirmarApuracaoRequest;
 import br.com.facilita.apuracao.api.GetTarefaRequest;
 import br.com.facilita.apuracao.api.GetTarefaResponse;
@@ -17,9 +19,12 @@ import br.com.facilita.apuracao.api.ListarAnexosResponse;
 import br.com.facilita.apuracao.api.ListarApuracoesRequest;
 import br.com.facilita.apuracao.api.ListarApuracoesResponse;
 import br.com.facilita.apuracao.api.ListarDetalheRequest;
+import br.com.facilita.apuracao.api.PrepararAnexoRequest;
 import br.com.facilita.apuracao.api.SolicitarNovaAuditoriaRequest;
+import br.com.facilita.apuracao.business.AbrirAnexoBusiness;
 import br.com.facilita.apuracao.business.AnexarBusiness;
 import br.com.facilita.apuracao.business.AtualizarApuracaoBusiness;
+import br.com.facilita.apuracao.business.ConcluirAnexoBusiness;
 import br.com.facilita.apuracao.business.ConfirmarApuracaoBusiness;
 import br.com.facilita.apuracao.business.GetTarefaBusiness;
 import br.com.facilita.apuracao.business.ListarAnexosBusiness;
@@ -45,6 +50,8 @@ public class ApuracaoDashboardController {
     private final AnexarBusiness anexar;
     private final ListarAnexosBusiness listarAnexos;
     private final GetTarefaBusiness getTarefa;
+    private final ConcluirAnexoBusiness concluirAnexo;
+    private final AbrirAnexoBusiness abrirAnexo;
     private final OmAuthorizationContextResolver contextResolver;
 
     @Inject
@@ -53,6 +60,7 @@ public class ApuracaoDashboardController {
             ConfirmarApuracaoBusiness confirmar,
             SolicitarNovaAuditoriaBusiness solicitarNovaAuditoria, AnexarBusiness anexar,
             ListarAnexosBusiness listarAnexos, GetTarefaBusiness getTarefa,
+            ConcluirAnexoBusiness concluirAnexo, AbrirAnexoBusiness abrirAnexo,
             OmAuthorizationContextResolver contextResolver) {
         this.listarApuracoes = listarApuracoes;
         this.listarDetalhe = listarDetalhe;
@@ -62,6 +70,8 @@ public class ApuracaoDashboardController {
         this.anexar = anexar;
         this.listarAnexos = listarAnexos;
         this.getTarefa = getTarefa;
+        this.concluirAnexo = concluirAnexo;
+        this.abrirAnexo = abrirAnexo;
         this.contextResolver = contextResolver;
     }
 
@@ -99,6 +109,26 @@ public class ApuracaoDashboardController {
     @Transactional(Transactional.TxType.REQUIRED)
     public ApiResponse<AnexoResponse> anexar(@Valid AnexarRequest request) {
         return anexar.execute(request, currentContext(), null);
+    }
+
+    /** Confere vencimento, parceiro e extensao antes do upload. */
+    public ApiResponse<AnexoResponse> prepararAnexo(@Valid PrepararAnexoRequest request) {
+        concluirAnexo.preparar(request.getNuApuracao(), request.getNameAttach(), request.getTipo(),
+                currentContext());
+        return ApiResponse.success(null, new AnexoResponse());
+    }
+
+    /** Grava o nome do legado e marca POSSUIANEXO depois da associacao. */
+    @Transactional(Transactional.TxType.REQUIRED)
+    public ApiResponse<AnexoResponse> concluirAnexo(@Valid ConcluirAnexoRequest request) {
+        return ApiResponse.success(null, concluirAnexo.concluir(request.getNuApuracao(),
+                request.getNuAttach(), request.getTipo(), currentContext()));
+    }
+
+    /** Confere o anexo escolhido. A URL so entra com evidencia no Om. */
+    public ApiResponse<AnexoResponse> abrirAnexo(@Valid AbrirAnexoRequest request) {
+        return ApiResponse.success(null, abrirAnexo.abrir(request.getNuApuracao(),
+                request.getNuAttach(), currentContext()));
     }
 
     /** Lista os anexos autorizados de uma apuração. */

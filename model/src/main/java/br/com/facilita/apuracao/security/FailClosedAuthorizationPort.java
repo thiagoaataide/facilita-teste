@@ -38,7 +38,8 @@ public final class FailClosedAuthorizationPort implements AuthorizationPort {
         if (AuthorizationAction.LIST == action
                 || AuthorizationAction.DETAIL == action
                 || AuthorizationAction.LIST_ATTACHMENTS == action
-                || AuthorizationAction.CONFIRM == action) {
+                || AuthorizationAction.CONFIRM == action
+                || AuthorizationAction.ATTACH == action) {
             return;
         }
         if (AuthorizationAction.REQUEST_NEW_AUDIT == action) {
