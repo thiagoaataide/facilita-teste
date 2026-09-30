@@ -1,16 +1,16 @@
 package br.com.facilita.apuracao.api;
 
-import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
 public class VersionedApuracaoRequest extends ApuracaoIdRequest {
 
-    @NotBlank(message = "A versÃ£o observada Ã© obrigatÃ³ria.")
-    @Size(max = 100, message = "A versÃ£o observada deve ter no mÃ¡ximo 100 caracteres.")
+    @NotNull(message = "A versão observada é obrigatória.")
+    @Size(min = 1, max = 100, message = "A versão observada deve ter no máximo 100 caracteres.")
     private String version;
 
-    @NotBlank(message = "A chave de idempotÃªncia Ã© obrigatÃ³ria.")
-    @Size(max = 200, message = "A chave de idempotÃªncia deve ter no mÃ¡ximo 200 caracteres.")
+    @NotNull(message = "A chave de idempotência é obrigatória.")
+    @Size(min = 1, max = 200, message = "A chave de idempotência deve ter no máximo 200 caracteres.")
     private String idempotencyKey;
 
     public VersionedApuracaoRequest() {

@@ -1,20 +1,20 @@
 package br.com.facilita.apuracao.api;
 
-import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
 public class AnexarRequest extends VersionedApuracaoRequest {
 
-    @NotBlank(message = "A chave do arquivo tempor√°rio √© obrigat√≥ria.")
-    @Size(max = 200, message = "A chave do arquivo tempor√°rio deve ter no m√°ximo 200 caracteres.")
+    @NotNull(message = "A chave do arquivo tempor·rio È obrigatÛria.")
+    @Size(min = 1, max = 200, message = "A chave do arquivo tempor·rio deve ter no m·ximo 200 caracteres.")
     private String sessionKey;
 
-    @NotBlank(message = "O nome do anexo √© obrigat√≥rio.")
-    @Size(max = 255, message = "O nome do anexo deve ter no m√°ximo 255 caracteres.")
+    @NotNull(message = "O nome do anexo È obrigatÛrio.")
+    @Size(min = 1, max = 255, message = "O nome do anexo deve ter no m·ximo 255 caracteres.")
     private String nameAttach;
 
-    @NotBlank(message = "O tipo do anexo √© obrigat√≥rio.")
-    @Size(max = 2, message = "O tipo do anexo deve ter no m√°ximo 2 caracteres.")
+    @NotNull(message = "O tipo do anexo È obrigatÛrio.")
+    @Size(min = 1, max = 2, message = "O tipo do anexo deve ter no m·ximo 2 caracteres.")
     private String tipo;
 
     public AnexarRequest() {

@@ -28,6 +28,7 @@ Fatos que valem para qualquer feature deste add-on. Decisões de arquitetura fic
 - A interface `@NativeQuery.Result` precisa ficar em arquivo próprio; aninhada no repositório não compila.
 - Todo parâmetro de `@NativeQuery` precisa de `@Parameter(name = "...")`.
 - `catch` que troca exceção por `ApuracaoBusinessException` precisa registrar a causa no log; sem isso, o log do Om não ajuda.
+- O Om valida com Hibernate Validator 5 (Bean Validation 1.1). `javax.validation.constraints.NotBlank` existe só no BV 2.0 e vira `UnexpectedTypeException` (`HV000030`), que o advice publica como `INTERNAL`. Campo obrigatório de texto usa `@NotNull` e `@Size(min = 1)`. Evidência: `prepararAnexo` em 2026-09-30, correlationId `bec1c684-16cc-4542-aa8e-ac29d735cf5e`.
 
 ## Ambiente local
 
