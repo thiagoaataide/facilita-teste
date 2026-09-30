@@ -52,4 +52,13 @@ public interface BhApuracaoRepository extends JapeRepository<Integer, BhApuracao
             + "THEN 'S' ELSE 'N' END AS POSSUIANEXO "
             + "FROM BH_FACAPU APU WHERE APU.NUAPURACAO = :nuApuracao")
     List<DetalheApuracaoRow> findDetalhe(@Parameter(name = "nuApuracao") Integer nuApuracao);
+
+    @NativeQuery("SELECT CON.IDENTIFICADOR, OPE.NOMEPARC, TIT.CGC_CPF AS CGCCPF, "
+            + "TO_CHAR(APU.DTVENC, 'YYYY-MM-DD') AS DTVENC "
+            + "FROM BH_FACAPU APU "
+            + "JOIN BH_FACCON CON ON CON.CODCONTA = APU.CODCONTA "
+            + "LEFT JOIN TGFPAR OPE ON OPE.CODPARC = CON.OPERADORA "
+            + "LEFT JOIN TGFPAR TIT ON TIT.CODPARC = CON.TITULARIDADE "
+            + "WHERE APU.NUAPURACAO = :nuApuracao")
+    List<NomeAnexoRow> findNomeAnexo(@Parameter(name = "nuApuracao") Integer nuApuracao);
 }
