@@ -1,0 +1,11 @@
+<sk-application ng-controller="ApuracaoChamadaController as ctrl">
+    <div class="apuracao-chamada">
+        <h1>Chamada da fachada</h1>
+        <label>
+            NUAPURACAO
+            <input type="text" ng-model="ctrl.nuApuracao" autocomplete="off"/>
+        </label>
+        <button default ng-click="ctrl.listarAnexos()">Listar anexos</button>
+        <pre class="apuracao-chamada__resultado">{{ctrl.resultado}}</pre>
+    </div>
+</sk-application>

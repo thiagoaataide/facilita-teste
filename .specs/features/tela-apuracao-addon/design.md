@@ -124,7 +124,7 @@ Filtro inicial: `mesReferencia` no mês corrente `YYYY-MM`, `somentePendentes` v
 
 ## F4 — Confirmar e nova auditoria
 
-**Status**: Draft
+**Status**: Approved (gravação pela entidade JAPE, AD-008)
 **Requisitos**: TELA-09, TELA-10, TELA-11 e os três edge cases de `confirmar`/`solicitarNovaAuditoria` da spec.
 
 ### Visão geral
@@ -158,7 +158,7 @@ graph TD
 | **A. UPDATE nativo condicional (recomendada)** | `@Modifying @NativeQuery` com o estado e a versão no `WHERE`; depois relê pelo SQL nativo do detalhe | Mesmo caminho de leitura já comprovado no Om. A condição no `WHERE` evita gravar sobre estado ou versão velhos | Não passa pelos eventos JAPE da instância `bhApuracao`; triggers do banco continuam valendo |
 | B. `save` da entidade JAPE, como o legado | Carrega `BhApuracao`, altera os campos e chama `repository.save` | Dispara os eventos JAPE, como `dao.save` do legado | A carga da entidade parcial falhou no Om e a causa não foi registrada. Seria preciso provar antes |
 
-A escolha é **A**. No fonte legado não há listener ou evento programável sobre `BH_FACAPU`. Registrar no UAT que a confirmação não quebrou nada no Om.
+**Decisão do usuário em 2026-09-29: B.** A gravação passa pela entidade JAPE para acionar os eventos de CRUD de `bhApuracao`, sejam os de hoje ou os que vierem. A carga da entidade precisa ser comprovada no Om antes das gravações. As seções de SQL de confirmação e nova auditoria abaixo ficam como referência do estado exigido, não como implementação.
 
 ### Idempotência
 

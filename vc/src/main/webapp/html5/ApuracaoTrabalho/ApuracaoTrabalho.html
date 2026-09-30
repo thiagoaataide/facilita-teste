@@ -44,6 +44,12 @@
         </table>
         <div ng-if="ctrl.detalhe">
             <h2>Detalhe {{ctrl.detalhe.nuApuracao}}</h2>
+            <div class="apuracao-trabalho__acoes">
+                <button brand ng-if="ctrl.detalhe.confirmado !== 'S'"
+                        ng-disabled="ctrl.gravando" ng-click="ctrl.confirmar()">Confirmar</button>
+                <button default ng-if="ctrl.detalhe.confirmado === 'S'"
+                        ng-disabled="ctrl.gravando" ng-click="ctrl.solicitarNovaAuditoria()">Solicitar nova auditoria</button>
+            </div>
             <pre>{{ctrl.detalheTexto}}</pre>
         </div>
         <div>

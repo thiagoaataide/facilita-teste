@@ -3,7 +3,10 @@ package br.com.facilita.apuracao.repository;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.List;
 import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import com.google.inject.Inject;
 
@@ -18,12 +21,12 @@ import br.com.facilita.apuracao.port.ApuracaoStore;
 import br.com.sankhya.studio.stereotypes.Component;
 
 /**
- * Persistência JAPE de {@code BH_FACAPU}. A edição de {@code VALOR}/{@code DTVENC}
- * está habilitada; confirmação e nova auditoria permanecem fail-closed até T16.
+ * Leitura por SQL nativo; gravacao pela entidade JAPE para acionar os eventos de CRUD (AD-008).
  */
 @Component
 public final class BhApuracaoJapeStore implements ApuracaoStore {
 
+    private static final Logger LOGGER = Logger.getLogger(BhApuracaoJapeStore.class.getName());
     private static final DateTimeFormatter ISO_DATE = DateTimeFormatter.ISO_LOCAL_DATE;
 
     private final BhApuracaoRepository repository;
@@ -41,16 +44,18 @@ public final class BhApuracaoJapeStore implements ApuracaoStore {
         if (nuApuracao == null || nuApuracao.intValue() <= 0) {
             return Optional.empty();
         }
+        List<DetalheApuracaoRow> rows;
         try {
-            Optional<BhApuracao> found = repository.findByNuApuracao(nuApuracao);
-            if (found == null || !found.isPresent()) {
-                return Optional.empty();
-            }
-            return Optional.of(BhApuracaoSnapshotMapper.toSnapshot(found.get()));
-        } catch (Exception exception) {
+            rows = repository.findDetalhe(nuApuracao);
+        } catch (RuntimeException exception) {
+            LOGGER.log(Level.SEVERE, "Falha ao consultar a apuracao " + nuApuracao, exception);
             throw new ApuracaoBusinessException(ErrorCode.INTEGRATION,
-                    "Não foi possível consultar a apuração no Om.");
+                    "Nao foi possivel consultar a apuracao no Om.");
         }
+        if (rows == null || rows.isEmpty() || rows.get(0) == null) {
+            return Optional.empty();
+        }
+        return Optional.of(BhApuracaoSnapshotMapper.toSnapshot(rows.get(0)));
     }
 
     @Override
@@ -92,21 +97,81 @@ public final class BhApuracaoJapeStore implements ApuracaoStore {
 
     @Override
     public ApuracaoSnapshot confirm(ConfirmarApuracaoCommand command) {
-        throw writeBlocked();
+        BhApuracao entity = loadEntity(requireId(command == null ? null : command.getNuApuracao()));
+        ApuracaoSnapshot current = BhApuracaoSnapshotMapper.toSnapshot(entity);
+        if (current.isConfirmed() || current.isAuditFinalized()) {
+            throw new ApuracaoBusinessException(ErrorCode.CONFLICT,
+                    "A apuracao ja esta confirmada ou com auditoria finalizada.", "nuApuracao", null);
+        }
+        requireVersion(command.getExpectedVersion(), current);
+        if (entity.getValor() == null) {
+            throw new ApuracaoBusinessException(ErrorCode.VALIDATION,
+                    "Para confirmar a apuracao o valor deve ser preenchido.", "valor", null);
+        }
+        entity.setConfirmado(Boolean.TRUE);
+        return save(entity);
     }
 
     @Override
     public ApuracaoSnapshot requestNewAudit(SolicitarNovaAuditoriaCommand command) {
-        throw writeBlocked();
+        BhApuracao entity = loadEntity(requireId(command == null ? null : command.getNuApuracao()));
+        ApuracaoSnapshot current = BhApuracaoSnapshotMapper.toSnapshot(entity);
+        if (!current.isConfirmed()) {
+            throw new ApuracaoBusinessException(ErrorCode.CONFLICT,
+                    "Somente uma apuracao confirmada pode solicitar nova auditoria.",
+                    "nuApuracao", null);
+        }
+        requireVersion(command.getExpectedVersion(), current);
+        entity.setConfirmado(Boolean.FALSE);
+        entity.setAuditoriaFinalizada(Boolean.FALSE);
+        entity.setEmailEnviado(Boolean.FALSE);
+        entity.setFaturamentoLiberado(Boolean.FALSE);
+        entity.setIdInstPrn(null);
+        return save(entity);
     }
 
     private BhApuracao loadEntity(Integer nuApuracao) {
-        Optional<BhApuracao> found = repository.findByNuApuracao(nuApuracao);
-        if (found == null || !found.isPresent()) {
-            throw new ApuracaoBusinessException(ErrorCode.VALIDATION,
-                    "A apuração informada não foi encontrada.", "nuApuracao", null);
+        BhApuracao found;
+        try {
+            found = repository.findByPK(nuApuracao);
+        } catch (Exception exception) {
+            LOGGER.log(Level.SEVERE, "Falha ao carregar a entidade da apuracao " + nuApuracao,
+                    exception);
+            throw new ApuracaoBusinessException(ErrorCode.INTEGRATION,
+                    "Nao foi possivel consultar a apuracao no Om.");
         }
-        return found.get();
+        if (found == null) {
+            throw new ApuracaoBusinessException(ErrorCode.VALIDATION,
+                    "A apuracao informada nao foi encontrada.", "nuApuracao", null);
+        }
+        return found;
+    }
+
+    private ApuracaoSnapshot save(BhApuracao entity) {
+        try {
+            return BhApuracaoSnapshotMapper.toSnapshot(repository.save(entity));
+        } catch (Exception exception) {
+            LOGGER.log(Level.SEVERE, "Falha ao gravar a apuracao " + entity.getNuApuracao(),
+                    exception);
+            throw new ApuracaoBusinessException(ErrorCode.INTEGRATION,
+                    "Nao foi possivel gravar a apuracao no Om.");
+        }
+    }
+
+    private static Integer requireId(Integer nuApuracao) {
+        if (nuApuracao == null || nuApuracao.intValue() <= 0) {
+            throw new ApuracaoBusinessException(ErrorCode.VALIDATION,
+                    "A apuracao informada e invalida.", "nuApuracao", null);
+        }
+        return nuApuracao;
+    }
+
+    private static void requireVersion(String expected, ApuracaoSnapshot current) {
+        if (!BhApuracaoObservedVersion.matches(expected, current.getVersion())) {
+            throw new ApuracaoBusinessException(ErrorCode.CONFLICT,
+                    "A apuracao foi alterada por outro usuario. Recarregue os dados.",
+                    "version", null);
+        }
     }
 
     private static LocalDate parseDate(String value) {
@@ -120,10 +185,5 @@ public final class BhApuracaoJapeStore implements ApuracaoStore {
 
     private static boolean isBlank(String value) {
         return value == null || value.trim().isEmpty();
-    }
-
-    private static ApuracaoBusinessException writeBlocked() {
-        return new ApuracaoBusinessException(ErrorCode.INTEGRATION,
-                "A operação de escrita aguarda homologação do contrato do Om.");
     }
 }

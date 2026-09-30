@@ -1,0 +1,12 @@
+.apuracao-chamada {
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 720px;
+}
+
+.apuracao-chamada__resultado {
+    white-space: pre-wrap;
+    min-height: 120px;
+}

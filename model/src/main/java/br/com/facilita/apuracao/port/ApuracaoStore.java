@@ -14,10 +14,9 @@ public interface ApuracaoStore {
     ApuracaoSnapshot updateEditableFields(AtualizarApuracaoCommand command);
 
     /**
-     * Confirma atomicamente sob a versão observada. O adapter deve reconhecer
-     * primeiro o replay da mesma chave idempotente e não repetir efeitos;
-     * para uma chave nova, valida valor e estado e compara a versão observada
-     * dentro da mesma transação, sem mutar em caso de VALIDATION/CONFLICT.
+     * Confirma sob a versao observada, na transacao do executor. A chave
+     * idempotente nao e guardada (AD-008): um reenvio depois do commit encontra
+     * a linha confirmada e recebe CONFLICT, sem segundo efeito.
      */
     ApuracaoSnapshot confirm(ConfirmarApuracaoCommand command);
 

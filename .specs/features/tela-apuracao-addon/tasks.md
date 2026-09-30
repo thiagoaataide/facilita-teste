@@ -300,7 +300,7 @@ Phase 4:
 # F4 — Tasks
 
 **Design**: `.specs/features/tela-apuracao-addon/design.md`, seção F4
-**Status**: Draft
+**Status**: Done no código; UAT no Om pendente
 **Requisitos**: TELA-09, TELA-10, TELA-11 e os edge cases de `confirmar`/`solicitarNovaAuditoria`
 
 Test Coverage Matrix, Parallelism Assessment e Gate Check Commands são os da primeira lista, acima, com uma linha a mais para a F4:
@@ -363,7 +363,7 @@ T11 → T12
 **Tests**: none
 **Gate**: none (evidência)
 
-**Commit**: `docs(evidencia): registra BH_NOVAAUDIT em TSIUSU`
+**Status**: ✅ Done. Validado pelo usuário antes de 2026-09-29; registrado em `.specs/memory.md`.
 
 ---
 
@@ -382,22 +382,20 @@ T11 → T12
 
 **Done when**:
 
-- [ ] `findById` devolve o snapshot com valor, vencimento, confirmado e versão
-- [ ] Linha inexistente devolve `Optional.empty()`
-- [ ] Falha de SQL vira `INTEGRATION` e a causa vai para o log
-- [ ] Os testes de `BhApuracaoReadAdapterTest` continuam passando
-- [ ] Gate: `.\gradlew.bat :model:test` com JDK 21
+- [x] `findById` devolve o snapshot com valor, vencimento, confirmado e versão
+- [x] Linha inexistente devolve `Optional.empty()`
+- [x] Falha de SQL vira `INTEGRATION` e a causa vai para o log
+- [x] Os testes de `BhApuracaoReadAdapterTest` continuam passando
+- [x] Gate: `.\gradlew.bat :model:test` com JDK 21
 
 **Tests**: unit
 **Gate**: quick
-
-**Commit**: `refactor(apuracao): le a apuracao do store por SQL nativo`
 
 ---
 
 ### T9: Gravar a confirmação
 
-**What**: `confirm` faz o UPDATE condicional do desenho e relê a linha. Sem valor: `VALIDATION`. Já confirmada, finalizada ou com versão diferente: `CONFLICT`. Se a releitura não mostrar a linha confirmada: `CONFLICT`. Atualizar o Javadoc de `ApuracaoStore.confirm` conforme AD-008.
+**What**: `confirm` carrega a entidade por `findByPK`, confere estado e versão, marca `CONFIRMADO` e grava por `repository.save` (AD-008). Sem valor: `VALIDATION`. Já confirmada, finalizada ou com versão diferente: `CONFLICT`, sem gravar. Atualizar o Javadoc de `ApuracaoStore.confirm`. Remover o `@Criteria findByNuApuracao`, que falhou no Om e ficou sem uso.
 **Where**: `BhApuracaoRepository.java`, `BhApuracaoJapeStore.java`, `ApuracaoStore.java`
 **Depends on**: T8
 **Reuses**: `TransactionalApuracaoConfirmExecutor` (já `@Transactional`), `BhApuracaoObservedVersion`
@@ -410,25 +408,22 @@ T11 → T12
 
 **Done when**:
 
-- [ ] Apuração aberta com valor chama o UPDATE com `nuApuracao`, valor e vencimento da versão, e devolve `confirmado = S`
-- [ ] Sem valor: `VALIDATION`, sem UPDATE
-- [ ] Já confirmada ou com auditoria finalizada: `CONFLICT`, sem UPDATE
-- [ ] Versão diferente: `CONFLICT`, sem UPDATE
-- [ ] Releitura ainda não confirmada: `CONFLICT`
-- [ ] O SQL não tem `SELECT *` nem concatenação de entrada; só altera `CONFIRMADO`
-- [ ] Gate: `.\gradlew.bat :model:test` com JDK 21
+- [x] Apuração aberta com valor grava uma vez pela entidade e devolve `confirmado = S`, com o valor intacto
+- [x] Sem valor: `VALIDATION`, sem gravar
+- [x] Já confirmada ou com auditoria finalizada: `CONFLICT`, sem gravar
+- [x] Versão diferente: `CONFLICT`, sem gravar
+- [x] Falha ao carregar a entidade: `INTEGRATION`, com a causa no log
+- [x] Gate: `.\gradlew.bat :model:test` com JDK 21
 
 **Tests**: unit
 **Gate**: quick
-
-**Commit**: `feat(apuracao): grava a confirmacao com UPDATE condicional`
 
 ---
 
 ### T10: Gravar a nova auditoria
 
-**What**: `requestNewAudit` faz o UPDATE condicional do desenho e relê. Não confirmada ou versão diferente: `CONFLICT`. Se a releitura continuar confirmada: `CONFLICT`.
-**Where**: `BhApuracaoRepository.java`, `BhApuracaoJapeStore.java`
+**What**: `requestNewAudit` carrega a entidade, confere estado e versão, limpa os cinco campos do legado e grava por `repository.save`. Não confirmada ou versão diferente: `CONFLICT`, sem gravar.
+**Where**: `BhApuracaoJapeStore.java`
 **Depends on**: T8
 **Reuses**: `TransactionalApuracaoNewAuditExecutor`
 **Requirement**: TELA-10
@@ -440,16 +435,13 @@ T11 → T12
 
 **Done when**:
 
-- [ ] Apuração confirmada devolve `confirmado`, `auditoriaFinalizada`, `emailEnviado` e `faturamentoLiberado` iguais a `N` e `idInstPrn` nulo
-- [ ] Valor e vencimento ficam iguais
-- [ ] Não confirmada ou versão diferente: `CONFLICT`, sem UPDATE
-- [ ] O SQL só altera as cinco colunas que o legado limpa
-- [ ] Gate: `.\gradlew.bat :model:test` com JDK 21
+- [x] Apuração confirmada devolve `confirmado`, `auditoriaFinalizada`, `emailEnviado` e `faturamentoLiberado` iguais a `N` e `idInstPrn` nulo
+- [x] Valor e vencimento ficam iguais
+- [x] Não confirmada ou versão diferente: `CONFLICT`, sem gravar
+- [x] Gate: `.\gradlew.bat :model:test` com JDK 21
 
 **Tests**: unit
 **Gate**: quick
-
-**Commit**: `feat(apuracao): grava a nova auditoria com UPDATE condicional`
 
 ---
 
@@ -468,18 +460,16 @@ T11 → T12
 
 **Done when**:
 
-- [ ] `CONFIRM` não lança para usuário da sessão
-- [ ] `REQUEST_NEW_AUDIT` com `S` não lança
-- [ ] `REQUEST_NEW_AUDIT` com `N` ou sem linha: `FORBIDDEN`
-- [ ] Falha ao ler a flag: `FORBIDDEN`, com a causa no log
-- [ ] `UPDATE`, `ATTACH` e `VIEW_TASK` continuam `FORBIDDEN`
-- [ ] Entidade com `isNativeTable = true`; nenhum DDL
-- [ ] Gate: `.\gradlew.bat :model:test` com JDK 21
+- [x] `CONFIRM` não lança para usuário da sessão
+- [x] `REQUEST_NEW_AUDIT` com `S` não lança
+- [x] `REQUEST_NEW_AUDIT` com `N` ou sem linha: `FORBIDDEN`
+- [x] Falha ao ler a flag: `FORBIDDEN`, com a causa no log
+- [x] `UPDATE`, `ATTACH` e `VIEW_TASK` continuam `FORBIDDEN`
+- [x] Entidade com `isNativeTable = true`; nenhum DDL
+- [x] Gate: `.\gradlew.bat :model:test` com JDK 21
 
 **Tests**: unit
 **Gate**: quick
-
-**Commit**: `feat(auth): libera confirmar e nova auditoria pela regra do legado`
 
 ---
 
@@ -498,11 +488,11 @@ T11 → T12
 
 **Done when**:
 
-- [ ] Só um dos botões aparece, conforme `confirmado`
-- [ ] O botão fica desabilitado durante a chamada
-- [ ] Erro mostra `code`, `message` e `correlationId`
-- [ ] `node --check` passa no JavaScript
-- [ ] Gate: `.\gradlew.bat :model:test` com JDK 21 continua passando
+- [x] Só um dos botões aparece, conforme `confirmado`
+- [x] O botão fica desabilitado durante a chamada
+- [x] Erro mostra `code`, `message` e `correlationId`
+- [x] `node --check` passa no JavaScript
+- [x] Gate: `.\gradlew.bat :model:test` com JDK 21 continua passando (63 testes)
 
 **Tests**: none
 **Gate**: build

@@ -41,6 +41,37 @@ public final class BhApuracaoSnapshotMapper {
                 .build();
     }
 
+    public static ApuracaoSnapshot toSnapshot(DetalheApuracaoRow row) {
+        if (row == null) {
+            return null;
+        }
+        return ApuracaoSnapshot.builder()
+                .nuApuracao(row.getNuapuracao() == null
+                        ? null : Integer.valueOf(row.getNuapuracao().intValue()))
+                .codConta(row.getCodconta())
+                .numContrato(row.getNumcontrato())
+                .nuNota(row.getNunota())
+                .sequenciaCon(row.getSequenciacon())
+                .operadora(row.getOperadora())
+                .cliente(row.getCliente())
+                .codVend(row.getCodvend())
+                .referencia(row.getReferencia())
+                .referenciaAdiada(row.getReferenciaadiada())
+                .dtVenc(row.getDtvenc())
+                .valor(row.getValor())
+                .valorRef(row.getValorref())
+                .confirmado(row.getConfirmado())
+                .auditoriaFinalizada(row.getAuditoriafinalizada())
+                .emailEnviado(row.getEmailenviado())
+                .faturamentoLiberado(row.getFaturamentoliberado())
+                .nuFila(row.getNufila())
+                .plano(row.getPlano())
+                .idInstPrn(row.getIdinstprn())
+                .possuiAnexo(row.getPossuianexo())
+                .version(BhApuracaoObservedVersion.format(row.getValor(), row.getDtvenc()))
+                .build();
+    }
+
     private static String toString(Object value) {
         return value == null ? null : String.valueOf(value);
     }

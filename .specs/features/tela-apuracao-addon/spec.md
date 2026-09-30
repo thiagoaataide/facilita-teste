@@ -132,9 +132,9 @@ Dimensões fora do escopo desta tela: expiração de dado, limite de taxa e paga
 | TELA-07 | P1: anexo ausente | F3 | Done |
 | TELA-08 | P1: erro visível | F1 | Done |
 | TELA-15 | P1: filtros de mês, pendentes e anexo | F2 | Done |
-| TELA-09 | P2: confirmar | F4 | In Tasks |
-| TELA-10 | P2: nova auditoria permitida | F4 | In Tasks |
-| TELA-11 | P2: nova auditoria recusada | F4 | In Tasks |
+| TELA-09 | P2: confirmar | F4 | Implemented (UAT pendente) |
+| TELA-10 | P2: nova auditoria permitida | F4 | Implemented (UAT pendente) |
+| TELA-11 | P2: nova auditoria recusada | F4 | Implemented (UAT pendente) |
 | TELA-12 | P2: atualizar com versão vigente | F5 | Pending |
 | TELA-13 | P2: conflito de versão | F5 | Pending |
 | TELA-14 | P3: arquivo e tarefa bloqueados | F6 | Pending |

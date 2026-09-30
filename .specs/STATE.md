@@ -74,22 +74,22 @@
 - **Date**: 2026-09-29
 - **Status**: active
 
-### AD-008 — Gravação da apuração por UPDATE nativo condicional, sem tabela de idempotência
+### AD-008 — Gravação da apuração pela entidade JAPE, sem tabela de idempotência
 
-- **Decision**: `confirmar` e `solicitarNovaAuditoria` gravam `BH_FACAPU` com `@Modifying @NativeQuery`, com o estado esperado e a versão (`VALOR|DTVENC`) no `WHERE`, e releem pelo SQL nativo do detalhe. A `idempotencyKey` continua obrigatória no contrato, mas não é guardada. Um reenvio depois do commit recebe `CONFLICT`, sem segundo efeito.
-- **Reason**: A carga da entidade parcial por `@Criteria` falhou no Om, e o SQL nativo foi o caminho comprovado. Guardar a chave exigiria tabela nova, e o projeto não cria DDL.
-- **Trade-off**: O UPDATE nativo não dispara eventos JAPE da instância `bhApuracao`; o fonte legado não mostra listener nessa tabela. O Javadoc de `ApuracaoStore.confirm` deixa de pedir replay pela chave.
-- **Scope**: `BhApuracaoJapeStore`, `BhApuracaoRepository`, `ApuracaoStore` e F4 de `tela-apuracao-addon`. F5 decide à parte como gravar valor e vencimento.
+- **Decision**: Mutações em `BH_FACAPU` passam pela entidade JAPE `bhApuracao` (`repository.save`), para acionar os eventos de CRUD. A leitura para a tela continua por `@NativeQuery`. Antes de gravar, o store confere estado e versão (`VALOR|DTVENC`) na mesma transação. A `idempotencyKey` continua obrigatória no contrato, mas não é guardada; um reenvio depois do commit encontra o novo estado e recebe `CONFLICT`, sem segundo efeito.
+- **Reason**: Listeners de CRUD, atuais ou futuros, precisam ver a gravação, como no `dao.save` do legado. Guardar a chave exigiria tabela nova, e o projeto não cria DDL.
+- **Trade-off**: A conferência de versão é leitura seguida de gravação, não condição no `WHERE`. A carga da entidade parcial falhou no Om por `@Criteria`, e precisa ser comprovada antes. O Javadoc de `ApuracaoStore.confirm` deixa de pedir replay pela chave.
+- **Scope**: `BhApuracaoJapeStore`, `ApuracaoStore` e as gravações de F4 e F5.
 - **Date**: 2026-09-29
-- **Status**: proposed
+- **Status**: active
 
 ## Handoff
 
 - **Feature**: `.specs/features/tela-apuracao-addon/`
-- **Phase / Task**: F1–F3 concluídas e comprovadas no Om (versão 1.0.6)
-- **Completed**: grade com filtros de mês, pendentes e anexo; detalhe por SQL nativo; anexos de `TSIANX`
+- **Phase / Task**: F1–F3 comprovadas no Om (1.0.6). F4 (T7–T12) implementada na 1.0.7; UAT pendente
+- **Completed**: T1–T12. Confirmar e nova auditoria gravam pela entidade JAPE (`findByPK` + `save`); nova auditoria exige `TSIUSU.BH_NOVAAUDIT = 'S'`
 - **In-progress**: nenhuma
-- **Next step**: aprovar o desenho da F4, a AD-008 e as tarefas T7–T12; depois executar a partir de T7 e T8
-- **Blockers**: as gravações ainda leem a linha por `@Criteria` na entidade parcial, que falhou no detalhe; fontes Java em UTF-8 quebram acentos no Om
+- **Next step**: gerar e instalar a 1.0.7; rodar o UAT da F4 (roteiro em `tasks.md`). Se Confirmar devolver `INTEGRATION`, ler no log "Falha ao carregar a entidade da apuracao"
+- **Blockers**: a carga da entidade `BhApuracao` pelo JAPE ainda não foi comprovada no Om; fontes Java em UTF-8 quebram acentos
 - **Uncommitted files**: listagem TSIANX anterior, `build.gradle` e esta spec, se ainda não commitados
 - **Branch**: `main`

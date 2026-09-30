@@ -1,22 +1,16 @@
 package br.com.facilita.apuracao.repository;
 
 import java.util.List;
-import java.util.Optional;
 
 import br.com.facilita.apuracao.model.BhApuracao;
 import br.com.sankhya.sdk.data.repository.JapeRepository;
-import br.com.sankhya.studio.persistence.Criteria;
 import br.com.sankhya.studio.persistence.NativeQuery;
 import br.com.sankhya.studio.persistence.Parameter;
 import br.com.sankhya.studio.stereotypes.Repository;
 
-/** Repositório nativo de leitura da apuração, sem DML. */
+/** Leitura por SQL nativo; gravacao pelo save herdado da entidade (AD-008). */
 @Repository
 public interface BhApuracaoRepository extends JapeRepository<Integer, BhApuracao> {
-
-    @Criteria(clause = "this.NUAPURACAO = :nuApuracao")
-    Optional<BhApuracao> findByNuApuracao(
-            @Parameter(name = "nuApuracao") Integer nuApuracao);
 
     @NativeQuery("SELECT APU.NUAPURACAO, APU.CODCONTA, APU.NUMCONTRATO, "
             + "TO_CHAR(APU.DTVENC, 'YYYY-MM-DD') AS DTVENC, APU.VALOR, "

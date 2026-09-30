@@ -13,14 +13,57 @@ angular.module("ApuracaoTrabalhoApp", ["snk"])
                 somentePendentes: true,
                 possuiAnexo: false
             };
+            self.gravando = false;
             self.selecionar = selecionar;
             self.listar = listar;
+            self.confirmar = confirmar;
+            self.solicitarNovaAuditoria = solicitarNovaAuditoria;
 
             listar();
 
             function listar() {
                 self.detalhe = null;
                 self.anexos = null;
+                atualizarGrade();
+            }
+
+            function confirmar() {
+                gravar("confirmar", {});
+            }
+
+            function solicitarNovaAuditoria() {
+                gravar("solicitarNovaAuditoria", {});
+            }
+
+            function gravar(metodo, extras) {
+                if (!self.detalhe || self.gravando) {
+                    return;
+                }
+                var request = {
+                    nuApuracao: self.detalhe.nuApuracao,
+                    version: self.detalhe.version,
+                    idempotencyKey: novaChave(metodo)
+                };
+                angular.extend(request, extras);
+                self.gravando = true;
+                chamar(metodo, { request: request }).then(function (envelope) {
+                    self.gravando = false;
+                    if (!envelope) {
+                        $scope.$applyAsync();
+                        return;
+                    }
+                    self.detalhe = envelope.data || self.detalhe;
+                    self.detalheTexto = angular.toJson(self.detalhe, true);
+                    atualizarGrade();
+                });
+            }
+
+            function novaChave(metodo) {
+                return metodo + "-" + new Date().getTime() + "-"
+                    + Math.random().toString(36).substring(2, 10);
+            }
+
+            function atualizarGrade() {
                 chamar("listar", {
                     request: {
                         mesReferencia: textoMes(self.filtro.mes),

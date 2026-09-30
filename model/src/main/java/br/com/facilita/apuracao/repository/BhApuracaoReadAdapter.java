@@ -73,34 +73,7 @@ public final class BhApuracaoReadAdapter implements ApuracaoQuery {
         if (rows == null || rows.isEmpty() || rows.get(0) == null) {
             return Optional.empty();
         }
-        return Optional.of(toSnapshot(rows.get(0)));
-    }
-
-    private static ApuracaoSnapshot toSnapshot(DetalheApuracaoRow row) {
-        return ApuracaoSnapshot.builder()
-                .nuApuracao(toInteger(row.getNuapuracao()))
-                .codConta(row.getCodconta())
-                .numContrato(row.getNumcontrato())
-                .nuNota(row.getNunota())
-                .sequenciaCon(row.getSequenciacon())
-                .operadora(row.getOperadora())
-                .cliente(row.getCliente())
-                .codVend(row.getCodvend())
-                .referencia(row.getReferencia())
-                .referenciaAdiada(row.getReferenciaadiada())
-                .dtVenc(row.getDtvenc())
-                .valor(row.getValor())
-                .valorRef(row.getValorref())
-                .confirmado(row.getConfirmado())
-                .auditoriaFinalizada(row.getAuditoriafinalizada())
-                .emailEnviado(row.getEmailenviado())
-                .faturamentoLiberado(row.getFaturamentoliberado())
-                .nuFila(row.getNufila())
-                .plano(row.getPlano())
-                .idInstPrn(row.getIdinstprn())
-                .possuiAnexo(row.getPossuianexo())
-                .version(BhApuracaoObservedVersion.format(row.getValor(), row.getDtvenc()))
-                .build();
+        return Optional.of(BhApuracaoSnapshotMapper.toSnapshot(rows.get(0)));
     }
 
     private static YearMonth monthOf(String mesReferencia) {
