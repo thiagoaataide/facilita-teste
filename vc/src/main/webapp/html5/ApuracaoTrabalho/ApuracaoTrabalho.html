@@ -60,9 +60,10 @@
                     <h2>Anexos</h2>
                     <p ng-if="ctrl.anexos && ctrl.anexos.length === 0">Nenhum anexo.</p>
                     <ul>
-                        <li ng-repeat="arquivo in ctrl.anexos">{{arquivo.identifier}} {{arquivo.name}}</li>
+                        <li ng-repeat="arquivo in ctrl.anexos"
+                            ng-click="ctrl.escolherAnexo(arquivo)">{{arquivo.identifier}} {{arquivo.name}}</li>
                     </ul>
-                    <button default disabled="disabled">Ver</button>
+                    <button default ng-disabled="!ctrl.anexoEscolhido">Ver</button>
                 </div>
                 <div>
                     <h2>Enviar anexo</h2>

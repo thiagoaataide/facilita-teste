@@ -8,6 +8,7 @@ angular.module("ApuracaoTrabalhoApp", ["snk"])
             self.detalhe = null;
             self.detalheTexto = "";
             self.anexos = null;
+            self.anexoEscolhido = null;
             self.filtro = {
                 mes: mesCorrente(),
                 somentePendentes: true,
@@ -18,12 +19,14 @@ angular.module("ApuracaoTrabalhoApp", ["snk"])
             self.listar = listar;
             self.confirmar = confirmar;
             self.solicitarNovaAuditoria = solicitarNovaAuditoria;
+            self.escolherAnexo = escolherAnexo;
 
             listar();
 
             function listar() {
                 self.detalhe = null;
                 self.anexos = null;
+                self.anexoEscolhido = null;
                 atualizarGrade();
             }
 
@@ -88,6 +91,7 @@ angular.module("ApuracaoTrabalhoApp", ["snk"])
                 }
                 self.detalhe = null;
                 self.anexos = null;
+                self.anexoEscolhido = null;
                 chamar("listarDetalhe", {
                     request: { nuApuracao: item.nuApuracao }
                 }).then(function (envelope) {
@@ -105,8 +109,16 @@ angular.module("ApuracaoTrabalhoApp", ["snk"])
                     }
                     var data = envelope.data || {};
                     self.anexos = data.files || [];
+                    self.anexoEscolhido = null;
                     $scope.$applyAsync();
                 });
+            }
+
+            function escolherAnexo(arquivo) {
+                if (!arquivo || !arquivo.identifier) {
+                    return;
+                }
+                self.anexoEscolhido = arquivo.identifier;
             }
 
             function chamar(metodo, payload) {
