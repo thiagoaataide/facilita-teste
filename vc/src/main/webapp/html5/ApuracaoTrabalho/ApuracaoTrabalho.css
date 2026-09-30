@@ -11,6 +11,22 @@
     gap: 16px;
 }
 
+.apuracao-trabalho__corpo {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.apuracao-trabalho__grade {
+    flex: 1;
+    min-width: 0;
+}
+
+.apuracao-trabalho__lateral {
+    flex: 0 0 320px;
+    width: 320px;
+}
+
 .apuracao-trabalho__erro {
     white-space: pre-wrap;
 }
