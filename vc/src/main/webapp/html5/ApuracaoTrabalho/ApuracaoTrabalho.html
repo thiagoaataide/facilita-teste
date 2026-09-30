@@ -63,21 +63,29 @@
                         <li ng-repeat="arquivo in ctrl.anexos"
                             ng-click="ctrl.escolherAnexo(arquivo)">{{arquivo.identifier}} {{arquivo.name}}</li>
                     </ul>
-                    <button default ng-disabled="!ctrl.anexoEscolhido">Ver</button>
+                    <button default ng-disabled="!ctrl.anexoEscolhido" ng-click="ctrl.verAnexo()">Ver</button>
                 </div>
                 <div>
                     <h2>Enviar anexo</h2>
                     <label>
                         Arquivo
-                        <input type="file" disabled="disabled"/>
+                        <input id="anexo-arquivo" type="file"
+                               onchange="angular.element(this).scope().ctrl.marcarArquivo(this)"/>
                     </label>
                     <label>
                         Tipo
-                        <select disabled="disabled">
+                        <select ng-model="ctrl.tipoAnexo">
                             <option value="">Selecione</option>
+                            <option value="FO">Original</option>
+                            <option value="2V">2 via</option>
+                            <option value="FA">Ajustada</option>
+                            <option value="BO">Boleto</option>
+                            <option value="NF">Nota Fiscal</option>
+                            <option value="RE">Resumida</option>
                         </select>
                     </label>
-                    <button default disabled="disabled">Enviar</button>
+                    <button default ng-disabled="!ctrl.temArquivo || !ctrl.tipoAnexo || ctrl.gravando"
+                            ng-click="ctrl.enviarAnexo()">Enviar</button>
                 </div>
             </aside>
         </div>
