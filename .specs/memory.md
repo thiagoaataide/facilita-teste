@@ -22,6 +22,7 @@ Fatos que valem para qualquer feature deste add-on. Decisões de arquitetura fic
 - O Java grava a instância `bhApuracao`. O `ApuracaoListener` do legado regrava `NUMCONTRATO`, `OPERADORA`, `CLIENTE` e `CODVEND` a partir da configuração da conta na `REFERENCIA`. Não gera contrato.
 - Comprovado em 2026-09-30 na apuração `189300545`: `DTVENC` foi para `05/10/2026` e voltou para `03/10/2026`; `VALOR` permaneceu `114.95`. Os quatro campos do listener bateram (contrato 1, operadora 3649, cliente 1, vendedor 4).
 - Status `1` ou `2` é sucesso e abre o aviso central. Outro status fica no rodapé, com código `FA-`. O `NUAPURACAO` aparece no título "Apuração {n}"; a sequência contratual é outro campo.
+- Ver anexo no gadget abre `/facilitatelecom/visualizadorArquivos.facilita?nuApuracao={NUAPURACAO}` numa aba nova. A `mgeSession` e a `chaveArquivo` são colocadas pelo visualizador. Comprovado em 2026-09-30. Abre o anexo mais recente da apuração, como a tela antiga. Não escolhe um `NUATTACH`.
 
 ## Chamada da fachada
 

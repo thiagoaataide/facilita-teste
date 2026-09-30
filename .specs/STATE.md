@@ -108,7 +108,7 @@
 - **Phase / Task**: F1–F3 no Om (1.0.6). F4 implementada na 1.0.7, UAT com o cliente. F7 e F8: T13–T18 commitados; T19 sem URL do Om. 1.0.10 troca `@NotBlank` por `@NotNull` + `@Size(min = 1)`: o HV 5 do Om lança `HV000030` e a fachada devolve `INTERNAL`
 - **Completed**: T1–T18. Confirmar e nova auditoria gravam pela entidade JAPE (`findByPK` + `save`); nova auditoria exige `TSIUSU.BH_NOVAAUDIT = 'S'`. Anexar prepara, sobe pelo `AnexoSistemaSP.salvar` e grava o nome do legado
 - **In-progress**: T19 — `abrirAnexo` não devolve URL
-- **Next step**: no gadget, repetir a estratégia do botão `77` para confirmar e nova auditoria. `abrirAnexo` da tela do add-on continua sem URL de `NUATTACH`.
+- **Next step**: no gadget, repetir a estratégia do botão `77` para confirmar e nova auditoria. Ver anexo já abre o visualizador legado. `abrirAnexo` da tela do add-on continua sem URL de `NUATTACH`.
 - **Blockers**: a carga da entidade `BhApuracao` pelo JAPE ainda não foi comprovada no Om; fontes Java em UTF-8 quebram acentos
 - **Uncommitted files**: listagem TSIANX anterior, `build.gradle` e esta spec, se ainda não commitados
 - **Branch**: `main`
